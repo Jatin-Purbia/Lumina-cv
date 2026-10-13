@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "Please cite this scaffold and the Zero-DCE paper when using this research."
+title: "nta-zerodce: Noise- and Temporal-Aware Zero-DCE"
+type: software
+version: 0.0.1
+date-released: 2026-10-13
+license: MIT
+authors:
+  - name: "nta-zerodce contributors"
+references:
+  - type: conference-paper
+    title: "Zero-Reference Deep Curve Estimation for Low-Light Image Enhancement"
+    authors:
+      - family-names: Guo
+        given-names: Chunle
+      - family-names: Li
+        given-names: Chongyi
+      - family-names: Guo
+        given-names: Jichang
+      - family-names: Loy
+        given-names: Chen Change
+      - family-names: Hou
+        given-names: Junhui
+      - family-names: Kwong
+        given-names: Sam
+      - family-names: Cong
+        given-names: Runmin
+    year: 2020
+    conference:
+      name: "IEEE/CVF Conference on Computer Vision and Pattern Recognition"
+    url: "https://arxiv.org/abs/2001.06826"

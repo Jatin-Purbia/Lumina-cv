@@ -1,0 +1,9 @@
+# Copy values into the paths section of an experiment; this is not a full Config.
+paths:
+  train_images: "data/SICE/part1"
+  eval_low: "data/LOL/eval15/low"
+  eval_high: "data/LOL/eval15/high"
+  unpaired: "data/unpaired"
+  video_dir: "data/videos/train"
+  run_dir: "runs"
+  checkpoint_dir: "checkpoints"

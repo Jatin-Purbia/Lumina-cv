@@ -1,0 +1,121 @@
+base_config: configs/baseline.yaml
+seeds: [17, 29, 43]
+# Every run inherits all baseline hyperparameters; only explicit flags and seed change.
+runs:
+  - name: baseline
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: false
+      chroma: false
+      adaptive_exp: false
+      temporal: false
+      light: false
+  - name: noise_only
+    flags:
+      noise_aware: true
+      denoise: false
+      edge: false
+      chroma: false
+      adaptive_exp: false
+      temporal: false
+      light: false
+  - name: edge_only
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: true
+      chroma: false
+      adaptive_exp: false
+      temporal: false
+      light: false
+  - name: chroma_only
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: false
+      chroma: true
+      adaptive_exp: false
+      temporal: false
+      light: false
+  - name: adaptive_only
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: false
+      chroma: false
+      adaptive_exp: true
+      temporal: false
+      light: false
+  - name: temporal_only
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: false
+      chroma: false
+      adaptive_exp: false
+      temporal: true
+      light: false
+  - name: noise_denoise
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: false
+      chroma: false
+      adaptive_exp: false
+      temporal: false
+      light: false
+  - name: full
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: true
+      chroma: true
+      adaptive_exp: true
+      temporal: true
+      light: false
+  - name: loo_noise
+    flags:
+      noise_aware: false
+      denoise: false
+      edge: true
+      chroma: true
+      adaptive_exp: true
+      temporal: true
+      light: false
+  - name: loo_edge
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: false
+      chroma: true
+      adaptive_exp: true
+      temporal: true
+      light: false
+  - name: loo_chroma
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: true
+      chroma: false
+      adaptive_exp: true
+      temporal: true
+      light: false
+  - name: loo_adaptive
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: true
+      chroma: true
+      adaptive_exp: false
+      temporal: true
+      light: false
+  - name: loo_temporal
+    flags:
+      noise_aware: true
+      denoise: true
+      edge: true
+      chroma: true
+      adaptive_exp: true
+      temporal: false
+      light: false
