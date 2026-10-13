@@ -384,7 +384,7 @@ def load_config(path: Path, overrides: dict[str, object] | None = None) -> Confi
     """Load, override and validate a YAML experiment.
 
     Args:
-        path: UTF-8 YAML path, resolved relative to repository root.
+        path: UTF-8 YAML path, resolved relative to the core workspace root.
         overrides: Dotted field names to explicit CLI values; None leaves YAML unchanged.
 
     Returns:

@@ -1,5 +1,9 @@
 # Testing strategy
 
+Run Python checks from core/. The repository-root CI workflow runs an independent
+web job for the empty Next.js workspace. The frontend's npm typecheck/build do not
+run Python training or require datasets/checkpoints.
+
 ## M0 verification
 
 Packaging, ruff lint/format, strict project mypy, CLI help and collection-time structural

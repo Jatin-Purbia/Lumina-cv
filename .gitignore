@@ -1,0 +1,18 @@
+# Frontend dependencies and generated output.
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# Local environments and caches; Python data/output exclusions also live in core/.
+.env*
+!.env.example
+.venv/
+__pycache__/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.DS_Store
+Thumbs.db

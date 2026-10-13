@@ -37,7 +37,7 @@ archives separately; normalize layout explicitly. Baseline train_images recursiv
 indexes image files, never labels/reference composites. Match LOL basenames
 exactly and reject missing/duplicate pairs. Store a private split manifest with
 source hash, scene/session ID, exposure/frame index and acquisition terms.
-Config paths resolve from repo root; data_paths.example.yaml supplies only a paths
+Config paths resolve from the core workspace root; data_paths.example.yaml supplies only a paths
 section to merge manually into a complete experiment.
 
 ## Leakage and preprocessing

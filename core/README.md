@@ -3,6 +3,10 @@
 Noise- and Temporal-Aware Zero-DCE: a research scaffold for low-light photos,
 hostel-room videos, classroom recordings, and webcam enhancement.
 
+This is the independent Python CV/backend workspace in [Lumina CV](../README.md).
+The empty Next.js demo shell lives in [web](../web/README.md). Package name and
+research interfaces remain nta_zerodce; the repository folder is now core/.
+
 ## Thirty-second pitch
 
 Estimate per-pixel curves instead of a high-light reference image, following
@@ -32,7 +36,7 @@ Python 3.10+; CPU is sufficient for scaffold checks. On Colab/Kaggle, retain the
 platform's compatible torch build; select CUDA only when implementation exists.
 
 ```sh
-cd nta-zerodce
+cd core
 python -m venv .venv
 # POSIX: source .venv/bin/activate
 # PowerShell: .venv/Scripts/Activate.ps1
@@ -95,7 +99,7 @@ Plain text status labels deliberately replace coloured badges.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Docs and signatures | PRESENT | [ARCHITECTURE](docs/ARCHITECTURE.md), [METHOD](docs/METHOD.md), [INTERFACES](docs/INTERFACES.md) |
-| Packaging, lint, static types, CLI help | CHECKABLE | [pyproject](pyproject.toml), [CI](.github/workflows/ci.yml) |
+| Packaging, lint, static types, CLI help | CHECKABLE | [pyproject](pyproject.toml), [CI](../.github/workflows/ci.yml) |
 | Local doc links, config keys, stub-only callable audit | ACTIVE | [schema tests](tests/test_config_schema.py), make docs-check |
 | Config validation / registry execution / checkpoint IO | STUB | Typed records/metadata exist; functions raise TODO |
 | All model/loss/data/flow/inference/metric/training behavior | STUB | No algorithm implemented; strict xfail test plans |

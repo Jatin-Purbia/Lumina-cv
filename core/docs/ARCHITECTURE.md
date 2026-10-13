@@ -1,5 +1,14 @@
 # Architecture
 
+## Web/backend boundary
+
+The repository separates the empty [Next.js demo](../../web/README.md) in web/
+from the Python CV/backend workspace in core/. This document describes the core.
+Web owns browser presentation; core owns models, training and inference. A future
+HTTP serving adapter can call these public interfaces, but no web/API integration
+or serving framework is implemented yet. Models and tensor losses do not depend
+on Next.js or request handling.
+
 ## Scope and overview
 
 M0 defines a clean-room baseline from [R1](REFERENCES.md#r1), informed by the

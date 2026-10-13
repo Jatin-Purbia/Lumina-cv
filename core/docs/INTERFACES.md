@@ -79,7 +79,7 @@ ablation matrix have specialized schemas described after the table.
 | flow | method exactly dis, preset medium initially; scale (0,1]; alpha,beta>=0, beta squared-pixel units; photometric threshold [0,1]; align_corners=True |
 | temporal | blends [0,1], cut threshold [0,1], pair_source synthetic or real, frame_gap>=1 |
 | training | lr>0, batch/epochs/workers/log intervals valid integers, crop>=16 divisible by patches, optimizer Adam, wd>=0, clip>0, nonnegative seed, explicit device supported |
-| paths | nonempty local paths; resolve against repo root, required roots checked at execution not --help; train/eval disjoint manifests |
+| paths | nonempty local paths; resolve against core workspace root, required roots checked at execution not --help; train/eval disjoint manifests |
 
 Reject NaN/infinity and wrong YAML scalar types (including bool as int). Numeric
 integer literals may be converted to float only where explicitly scalar-float
@@ -1168,7 +1168,7 @@ def load_config(path: Path, overrides: dict[str, object] | None=None) -> Config:
 Load, override and validate a YAML experiment.
 
 Args:
-    path: UTF-8 YAML path, resolved relative to repository root.
+    path: UTF-8 YAML path, resolved relative to the core workspace root.
     overrides: Dotted field names to explicit CLI values; None leaves YAML unchanged.
 
 Returns:

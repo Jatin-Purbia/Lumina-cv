@@ -63,7 +63,12 @@ def test_contract_2() -> None:
 # Active collection-time checks avoid implementing a function in this stub-only scaffold.
 # make docs-check collects this module; broken links fail during collection.
 ROOT = Path(__file__).resolve().parents[1]
-for document in [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]:
+for document in [
+    ROOT / "README.md",
+    ROOT.parent / "README.md",
+    ROOT.parent / "web" / "README.md",
+    *sorted((ROOT / "docs").glob("*.md")),
+]:
     for target in re.findall(r"(?<!!)\[[^\]]*\]\(([^)]+)\)", document.read_text(encoding="utf-8")):
         target = target.split("#", 1)[0]
         if target and not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target):
