@@ -103,9 +103,16 @@ def _too_large_side(max_side: int) -> ApiError:
     )
 
 
-def _check_size(width: int, height: int, max_side: int) -> None:
+def _check_size(width: int, height: int, max_side: int, max_pixels: int | None = None) -> None:
     if width > max_side or height > max_side:
         raise _too_large_side(max_side)
+    if max_pixels is not None and width * height > max_pixels:
+        raise ApiError(
+            413,
+            TOO_LARGE,
+            f"The image has {width * height} pixels; the limit is {max_pixels} "
+            f"(for example {int(max_pixels**0.5)}x{int(max_pixels**0.5)}).",
+        )
     if width < MIN_SIDE or height < MIN_SIDE:
         raise ApiError(
             400, INVALID_IMAGE, f"The image is too small; width and height must be >= {MIN_SIDE}."
@@ -129,7 +136,9 @@ def _to_rgb(image: Image.Image) -> Image.Image:
     return image.convert("RGB")
 
 
-def decode_image(data: bytes, image_format: str, max_side: int) -> Tensor:
+def decode_image(
+    data: bytes, image_format: str, max_side: int, max_pixels: int | None = None
+) -> Tensor:
     """Decode a PNG/JPEG upload into a CPU RGB float32 ``(1,3,H,W)`` tensor in [0,1].
 
     The header size is checked before pixels are decoded (decompression-bomb guard), integrity
@@ -137,7 +146,7 @@ def decode_image(data: bytes, image_format: str, max_side: int) -> Tensor:
     black). Values are ``byte / 255`` like ``nta_zerodce.inference.io.read_image``.
 
     Raises:
-        ApiError: 413 for oversized dimensions or a decompression bomb, 400 for corrupt,
+        ApiError: 413 for oversized dimensions or pixel count or a decompression bomb, 400 for corrupt,
             truncated, too small or unsupported-mode images.
     """
     expected = _FORMAT_NAMES[image_format]
@@ -146,13 +155,13 @@ def decode_image(data: bytes, image_format: str, max_side: int) -> Tensor:
             if probe.format != expected:
                 raise ApiError(400, INVALID_IMAGE, "The image content is inconsistent.")
             width, height = probe.size
-            _check_size(width, height, max_side)
+            _check_size(width, height, max_side, max_pixels)
             probe.verify()
         with Image.open(io.BytesIO(data), formats=_PILLOW_FORMATS) as opened:
             opened.load()
             upright = ImageOps.exif_transpose(opened)
             rgb = _to_rgb(upright)
-            _check_size(rgb.width, rgb.height, max_side)
+            _check_size(rgb.width, rgb.height, max_side, max_pixels)
             array = np.array(rgb, dtype=np.uint8)
     except ApiError:
         raise

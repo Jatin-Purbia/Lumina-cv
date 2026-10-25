@@ -32,16 +32,17 @@ npm ci
 LUMINA_API_URL=http://127.0.0.1:8000 npm run dev   # the URL shown is the default
 ```
 
-Open http://localhost:3000. `next.config.ts` rewrites `/api/v1/:path*` to
-`${LUMINA_API_URL}/api/v1/:path*`. `LUMINA_API_URL` is read when the Next server
-starts (`next dev`, and `next build`/`next start` for production), so set it in the
-environment of those commands.
+Open http://localhost:3000. The route handler `app/api/v1/[...path]/route.ts` proxies
+`/api/v1/health`, `/options` and `/enhance` to `${LUMINA_API_URL}/api/v1/...`.
+`LUMINA_API_URL` is read **per request** (default `http://127.0.0.1:8000`), so one
+production build runs against any server: set it in the environment of `next start`
+(or the container), not at build time.
 
-The same config raises the proxied request-body buffer to 21 MB
-(`experimental.proxyClientMaxBodySize`; Next's default is 10 MB and larger bodies are
-truncated) and the proxy timeout to 120 s (`experimental.proxyTimeout`). Both are
-Next experimental options. If you raise `max_upload_bytes` on the server, raise the
-body limit as well.
+Request and response bodies are streamed, so uploads up to the API's own limit (20 MiB)
+are not truncated. The proxy rejects bodies over 21 MiB, times out after 120 s, forwards
+only an allow-list of headers, and answers 502 (`upstream_unavailable`) or 504
+(`upstream_timeout`) as JSON when the API cannot be reached. The page shows both as
+"Cannot reach the enhancement server".
 
 ## Run with the mock API (no Python)
 

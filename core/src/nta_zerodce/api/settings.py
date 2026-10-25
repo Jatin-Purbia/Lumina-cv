@@ -16,6 +16,10 @@ from PIL import Image
 
 DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 DEFAULT_MAX_SIDE = 4096
+# Full-resolution inference on CPU peaked at about 1.4 KB per pixel when measured (1024 x 1024
+# needs about 2 GB, 1448 x 1448 about 3.4 GB), so the area is bounded separately from the side
+# length. 2 Mi pixels fits a 1920 x 1080 frame.
+DEFAULT_MAX_PIXELS = 2 * 1024 * 1024
 MIN_SIDE = 16
 # Allowance on top of ``max_upload_bytes`` for multipart framing and the small form fields.
 BODY_OVERHEAD_BYTES = 64 * 1024
@@ -41,6 +45,7 @@ class Settings:
         device: ``LUMINA_DEVICE``; ``auto``, ``cpu``, ``cuda`` or ``cuda:N``.
         max_upload_bytes: ``LUMINA_MAX_UPLOAD_BYTES``; largest accepted image file.
         max_side: ``LUMINA_MAX_SIDE``; largest accepted width or height in pixels.
+        max_pixels: ``LUMINA_MAX_PIXELS``; largest accepted width x height (bounds memory).
         default_curve_scale: ``LUMINA_DEFAULT_CURVE_SCALE``; ``None`` uses the model config's
             ``model.curve_scale``.
         max_concurrency: ``LUMINA_MAX_CONCURRENCY``; simultaneous decode+inference+encode jobs.
@@ -54,6 +59,7 @@ class Settings:
     device: str = "auto"
     max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES
     max_side: int = DEFAULT_MAX_SIDE
+    max_pixels: int = DEFAULT_MAX_PIXELS
     default_curve_scale: float | None = None
     max_concurrency: int = 1
     cors_origins: tuple[str, ...] = ()
@@ -82,6 +88,10 @@ class Settings:
         scale = self.default_curve_scale
         if scale is not None and not 0.0 < scale <= 1.0:
             raise SettingsError(f"LUMINA_DEFAULT_CURVE_SCALE must be in (0, 1]; got {scale}")
+        if self.max_pixels < MIN_SIDE * MIN_SIDE:
+            raise SettingsError(
+                f"LUMINA_MAX_PIXELS must be an integer >= {MIN_SIDE * MIN_SIDE}; got {self.max_pixels}"
+            )
         if self.max_concurrency < 1:
             raise SettingsError(
                 f"LUMINA_MAX_CONCURRENCY must be an integer >= 1; got {self.max_concurrency}"
@@ -146,6 +156,7 @@ class Settings:
             device=get("LUMINA_DEVICE") or "auto",
             max_upload_bytes=integer("LUMINA_MAX_UPLOAD_BYTES", DEFAULT_MAX_UPLOAD_BYTES),
             max_side=integer("LUMINA_MAX_SIDE", DEFAULT_MAX_SIDE),
+            max_pixels=integer("LUMINA_MAX_PIXELS", DEFAULT_MAX_PIXELS),
             default_curve_scale=scale,
             max_concurrency=integer("LUMINA_MAX_CONCURRENCY", 1),
             cors_origins=origins,

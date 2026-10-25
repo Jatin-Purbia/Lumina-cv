@@ -158,7 +158,7 @@ def _run_pipeline(
     """
     model, device = runtime.model, runtime.torch_device
     assert model is not None and device is not None
-    image = decode_image(data, image_format, runtime.settings.max_side)
+    image = decode_image(data, image_format, runtime.settings.max_side, runtime.settings.max_pixels)
     height, width = int(image.shape[2]), int(image.shape[3])
     started = time.perf_counter()
     with torch.inference_mode():

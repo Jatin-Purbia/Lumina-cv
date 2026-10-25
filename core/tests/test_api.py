@@ -351,6 +351,21 @@ def test_oversize_side_is_too_large(checkpoint: Path) -> None:
         assert_error(post(small, jpeg_bytes(65, 32), "image/jpeg"), 413, "too_large")
 
 
+def test_pixel_budget_is_enforced_independently_of_side(checkpoint: Path) -> None:
+    custom = Settings(checkpoint=checkpoint, device="cpu", max_pixels=40 * 40)
+    with TestClient(create_app(custom)) as small:
+        assert post(small, png_bytes(40, 40)).status_code == 200
+        assert_error(post(small, png_bytes(41, 40)), 413, "too_large")
+        assert_error(post(small, jpeg_bytes(30, 60), "image/jpeg"), 413, "too_large")
+
+
+def test_pixel_budget_setting_validation_and_env() -> None:
+    with pytest.raises(SettingsError, match="LUMINA_MAX_PIXELS"):
+        Settings(max_pixels=10)
+    assert Settings().max_pixels == 2 * 1024 * 1024
+    assert Settings.from_env({"LUMINA_MAX_PIXELS": "5000"}).max_pixels == 5000
+
+
 def test_decompression_bomb_is_too_large(checkpoint: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 40 * 40)  # Pillow raises at twice this
     custom = Settings(checkpoint=checkpoint, device="cpu", max_side=40)

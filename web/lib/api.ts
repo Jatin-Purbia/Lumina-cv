@@ -1,7 +1,7 @@
 import { ApiError, isAbortError, isKnownCode } from "./errors";
 import type { EnhanceResult, HealthResponse, OptionsResponse } from "./types";
 
-/** All calls are same-origin; Next.js rewrites /api/v1/* to the Lumina API server. */
+/** All calls are same-origin; a Next.js route handler proxies /api/v1/* to the Lumina API server at runtime. */
 export const API_BASE = "/api/v1";
 
 async function request(url: string, init: RequestInit): Promise<Response> {
@@ -19,6 +19,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Turns a non-2xx response into a typed ApiError using the {error:{code,message}} body. */
 async function toApiError(response: Response): Promise<ApiError> {
+  // 502/504 are produced by the proxy (or a gateway) when the API server cannot be reached.
+  if (response.status === 502 || response.status === 504) {
+    return new ApiError({ kind: "network", status: response.status, code: null });
+  }
   let body: unknown = null;
   try {
     body = await response.json();

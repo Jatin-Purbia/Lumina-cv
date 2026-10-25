@@ -41,6 +41,7 @@ interactive `/docs` and `/openapi.json` pages are disabled.
 | `LUMINA_CONFIG` | unset | Optional experiment YAML. Its architecture flags and shapes must match the checkpoint; when unset the config stored in the checkpoint is used. Without a checkpoint it only supplies the flags and `curve_scale` shown by `/options`. |
 | `LUMINA_DEVICE` | `auto` | `auto`, `cpu`, `cuda` or `cuda:N`. An unavailable CUDA device fails startup when a checkpoint is configured. |
 | `LUMINA_MAX_UPLOAD_BYTES` | `20971520` | Largest accepted image file in bytes. |
+| `LUMINA_MAX_PIXELS` | `2097152` | Largest accepted width × height (2 Mi pixels; a 1920×1080 frame fits). Bounds inference memory, which was measured at about 1.4 KB per pixel on CPU (1 MP ≈ 2 GB peak, 2 MP ≈ 3.4 GB); a 4 MP image exhausted an 8 GB container. Raise it only with matching RAM or a GPU. |
 | `LUMINA_MAX_SIDE` | `4096` | Largest accepted width or height in pixels (at least 16, and `MAX_SIDE`² must not exceed Pillow's `Image.MAX_IMAGE_PIXELS`). |
 | `LUMINA_DEFAULT_CURVE_SCALE` | `model.curve_scale` of the config | Value in (0, 1] used when a request omits `curve_scale`. |
 | `LUMINA_MAX_CONCURRENCY` | `1` | Number of requests that may decode, run the model and encode at the same time. Further requests wait. |
@@ -128,7 +129,7 @@ Messages are fixed strings: they never contain file names, server paths or excep
 | Status | `code` | When |
 | --- | --- | --- |
 | 400 | `invalid_image` | Corrupt or truncated PNG/JPEG; bytes that are not an image (including a text file sent as `image/png`); declared type contradicts the content (for example JPEG bytes labelled `image/png`); empty file; width or height below 16; 16-bit or floating-point grayscale; missing or duplicated `file` field, a `file` field that is not a file part, a non-multipart body, a malformed multipart body or invalid `Content-Length`. |
-| 413 | `too_large` | Request body larger than `LUMINA_MAX_UPLOAD_BYTES` plus 64 KiB of multipart allowance (rejected from `Content-Length` before reading, or as soon as the streamed body exceeds it); file larger than `LUMINA_MAX_UPLOAD_BYTES`; width or height above `LUMINA_MAX_SIDE`; a Pillow decompression-bomb error. |
+| 413 | `too_large` | Request body larger than `LUMINA_MAX_UPLOAD_BYTES` plus 64 KiB of multipart allowance (rejected from `Content-Length` before reading, or as soon as the streamed body exceeds it); file larger than `LUMINA_MAX_UPLOAD_BYTES`; width or height above `LUMINA_MAX_SIDE`; width × height above `LUMINA_MAX_PIXELS`; a Pillow decompression-bomb error. |
 | 415 | `unsupported_type` | Declared type is not `image/png` or `image/jpeg` (including a missing type); or the bytes are a real but unsupported image such as GIF, WebP, TIFF or BMP. |
 | 422 | `bad_option` | `curve_scale` is not a plain decimal in (0, 1]: `0`, `1.5`, `abc`, `nan`, `inf`, `-1`, empty, repeated, etc.; also framework request-validation failures. |
 | 503 | `model_not_loaded` | `/enhance` while no checkpoint is loaded. Checked before the body is read. |
@@ -179,7 +180,7 @@ logging to stderr and disables uvicorn's own access log.
 - Upload bytes are counted while the body is streamed; at most `LUMINA_MAX_UPLOAD_BYTES` plus
   64 KiB are buffered (in memory) per in-flight request. Many simultaneous connections can
   still add up, so limit connections in the reverse proxy.
-- Decoded pixels are bounded by `LUMINA_MAX_SIDE`² (and Pillow's decompression-bomb guard).
+- Decoded pixels are bounded by `LUMINA_MAX_PIXELS` (and Pillow's decompression-bomb guard).
   Inference memory grows with the pixel count and the model; choose `LUMINA_MAX_SIDE` and
   `LUMINA_MAX_CONCURRENCY` for the machine. Requests beyond the concurrency limit wait; they do
   not fail.

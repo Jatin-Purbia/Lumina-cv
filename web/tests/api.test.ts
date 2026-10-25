@@ -119,7 +119,7 @@ describe("enhance", () => {
     await expect(enhance({ file })).rejects.toMatchObject({ kind: "api", status: 500, code: "unknown" });
 
     mockFetch(new Response("<html>Bad gateway</html>", { status: 502 }));
-    await expect(enhance({ file })).rejects.toMatchObject({ kind: "unexpected", status: 502 });
+    await expect(enhance({ file })).rejects.toMatchObject({ kind: "network", status: 502 });
   });
 
   it("rejects a 200 response that is not a PNG", async () => {
