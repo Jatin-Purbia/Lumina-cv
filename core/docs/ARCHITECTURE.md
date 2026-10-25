@@ -2,16 +2,16 @@
 
 ## Web/backend boundary
 
-The repository separates the empty [Next.js demo](../../web/README.md) in web/
+The repository separates the [Next.js demo](../../web/README.md) in web/
 from the Python CV/backend workspace in core/. This document describes the core.
-Web owns browser presentation; core owns models, training and inference. A future
-HTTP serving adapter can call these public interfaces, but no web/API integration
-or serving framework is implemented yet. Models and tensor losses do not depend
+Web owns browser presentation; core owns models, training and inference. The HTTP
+serving adapter ([API](API.md), FastAPI in nta_zerodce.api) calls these public inference
+interfaces; the web demo reaches it through a same-origin proxy. Models and tensor losses do not depend
 on Next.js or request handling.
 
 ## Scope and overview
 
-M0 defines a clean-room baseline from [R1](REFERENCES.md#r1), informed by the
+The design is a clean-room baseline from [R1](REFERENCES.md#r1), informed by the
 reference profile [R2](REFERENCES.md#r2), plus five proposed extensions. Tensor
 contracts are normative in [INTERFACES](INTERFACES.md); equations and reduction
 choices are normative in [METHOD](METHOD.md). There are no algorithms yet.

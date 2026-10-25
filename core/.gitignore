@@ -21,3 +21,4 @@ venv/
 notebooks/outputs/
 .DS_Store
 Thumbs.db
+.smoke/

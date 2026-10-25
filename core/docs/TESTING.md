@@ -1,39 +1,41 @@
 # Testing strategy
 
-Run Python checks from core/. The repository-root CI workflow runs an independent
-web job for the empty Next.js workspace. The frontend's npm typecheck/build do not
+Run Python checks from core/. The repository-root CI workflow runs independent core
+(Python 3.10 and 3.12), web and Docker-build jobs. The frontend's npm checks do not
 run Python training or require datasets/checkpoints.
 
-## M0 verification
+## What is verified
 
-Packaging, ruff lint/format, strict project mypy, CLI help and collection-time structural
-audits are executable. All behavioral test functions are strict xfail and raise
-NotImplementedError; xfail catches only that exception, not arbitrary failures.
-An xfailed plan is not evidence of tested algorithm behavior. CI runs on CPU;
-no dataset or GPU is required. make docs-check collects the schema test module,
-whose top-level assertions verify every local Markdown link in README/docs.
-Directories count as valid local paths; runtime data/checkpoint examples in fenced
-commands are intentionally not required to exist. All referenced repository files
-use Markdown links so the audit can see them. Link anchors/external URL availability
-are outside the local file check.
+`make lint typecheck test docs-check` runs ruff (lint and format), strict mypy over source,
+scripts and tests, and the full pytest suite (about 2,060 tests on CPU; CUDA-only tests skip
+without a GPU). No dataset, checkpoint or network access is required: tests build tiny
+synthetic images, videos and checkpoints in temporary directories.
 
-Active collection audits also verify complete YAML keys against dataclass defaults,
-valid ablation denoise/noise dependency, 13 rows/three seeds, and that every source
-and CLI function is a detailed docstring followed only by a TODO raise. Dataclass,
-TypedDict and registry declarations are structural interfaces, not implemented
-algorithm bodies. CLI argparse is module-level wiring. Documentation link errors
-fail collection even with --collect-only; no additional tooling file was needed.
-
-## Future assertions by file
-
-| Test file | Assertions to implement |
+| Layer | Test modules |
 | --- | --- |
-| [model_shapes](../tests/test_model_shapes.py) | baseline/full/light shapes, channel ordering, finite ranges, no transfers, full-resolution maps at curve_scale<1, branch gradients |
-| [curve_math](../tests/test_curve_math.py) | A=0 identity, 0/1 fixed points, .25 with +/-.5 sign examples, boundedness, fixed-A monotonicity, finite gradients |
-| [losses_signatures](../tests/test_losses_signatures.py) | scalar/device/gradient contracts, baseline constant-gray identities, masks, no detached student, mutual exposure gate |
-| [flow_conventions](../tests/test_flow_conventions.py) | known translation and nontranslation affine, inverse direction, x/y scaling, warp bounds, FB mask coordinates |
-| [flags_roundtrip](../tests/test_flags_roundtrip.py) | explicit-false CLI precedence, schema/YAML/checkpoint flags, invalid denoise and incompatible architecture rejection |
-| [config_schema](../tests/test_config_schema.py) | all keys/types/bounds, nonfinite rejection, scale/patch restrictions, unknown-field rejection, same ablation inheritance |
+| Math and models | [curve_math](../tests/test_curve_math.py), [model_shapes](../tests/test_model_shapes.py), [losses_signatures](../tests/test_losses_signatures.py), [flow_conventions](../tests/test_flow_conventions.py), [metrics](../tests/test_metrics.py) |
+| Data and IO | [data](../tests/test_data.py), [io](../tests/test_io.py), [utils](../tests/test_utils.py) |
+| Config and flags | [config_schema](../tests/test_config_schema.py), [flags_roundtrip](../tests/test_flags_roundtrip.py) |
+| Training | [training](../tests/test_training.py), [checkpoint](../tests/test_checkpoint.py), [scripts_training](../tests/test_scripts_training.py) |
+| Inference | [inference](../tests/test_inference.py), [scripts_inference](../tests/test_scripts_inference.py) |
+| HTTP API | [api](../tests/test_api.py) |
+| End to end | [e2e](../tests/test_e2e.py): train CLI, checkpoint, enhance CLI and API give identical pixels |
+
+`make smoke` is the same pipeline as a shell recipe (synthetic data, a three-epoch CPU
+training run, enhancement, output check). The web workspace has its own vitest suite
+(`npm test` in web/) covering the API client, error mapping, the proxy route handler and
+the page components; its CI job also runs typecheck, lint, build and `npm audit`.
+
+`make docs-check` collects [config_schema](../tests/test_config_schema.py), whose top-level
+assertions verify every local Markdown link in README/docs, that YAML configs carry exactly
+the dataclass keys, the 13-row/three-seed ablation matrix, and that every source function is
+annotated. Link anchors and external URLs are outside the local file check. Directories
+count as valid local paths; runtime data/checkpoint examples in fenced commands are
+intentionally not required to exist.
+
+Passing tests establish that the code matches its documented contracts, not that the model
+reaches any quality target: no trained weights, benchmark metrics or FPS figures are
+claimed. See [EXPERIMENTS](EXPERIMENTS.md) and [REAL_TIME](REAL_TIME.md).
 
 ## Known-affine test recipe
 
@@ -70,16 +72,11 @@ CUDA with float32 and tolerance chosen per operation, not bit equality across de
 make setup
 make lint typecheck test docs-check
 python scripts/enhance.py --help
+make smoke
 ```
 
-Once a behavior exists, remove its matching xfail and replace the raise with real
-assertions. Never broaden xfail to hide bugs. M1..M6 introduces implementation;
-the M0 stub-only AST audit must then be intentionally retired or narrowed alongside
-the status table and roadmap update. CI green at M0 guarantees scaffold integrity,
-not training/enhancement correctness. The remote workflow still needs an actual
-GitHub push/run before a hosted success can be claimed.
-
-At M0, mypy treats third-party torch imports as opaque and permits inheritance
-from their nn.Module/Dataset bases; every project argument/return is still checked
-under strict settings. Restore full torch type analysis when computational bodies
-are implemented. YAML parsing used by audits has a scoped missing-stubs override.
+Third-party torch imports are treated as opaque by mypy (`follow_imports = skip`) while every
+project argument and return stays strictly checked. mypy targets Python 3.12 because numpy 2.5
+stubs use 3.12 syntax; runtime compatibility with 3.10 is enforced by ruff's `target-version`
+and the 3.10 CI job. The hosted CI workflow has not been observed running from this
+repository yet.
