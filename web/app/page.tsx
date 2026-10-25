@@ -1,4 +1,6 @@
-/** Empty home route; demo UI will be implemented later. */
-export default function Page(): null {
-  return null;
+import type { ReactElement } from "react";
+import { EnhanceApp } from "@/components/EnhanceApp";
+
+export default function Page(): ReactElement {
+  return <EnhanceApp />;
 }
