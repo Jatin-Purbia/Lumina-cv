@@ -4,15 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nta_zerodce"
-version = "0.0.1"
-description = "Research interfaces for Noise- and Temporal-Aware Zero-DCE"
+version = "0.1.0"
+description = "Noise- and Temporal-Aware Zero-DCE: training, inference and HTTP API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dependencies = ["torch>=2.2", "numpy>=1.26", "opencv-python>=4.8", "scikit-image>=0.22", "pillow>=10", "tqdm>=4.66", "pyyaml>=6"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff==0.12.7", "mypy>=1.10,<2", "pre-commit>=3.7", "nbstripout>=0.7"]
+api = ["fastapi>=0.115", "uvicorn>=0.30", "python-multipart>=0.0.9"]
+dev = [
+  "pytest>=8",
+  "ruff==0.12.7",
+  "mypy>=1.10,<2",
+  "pre-commit>=3.7",
+  "nbstripout>=0.7",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

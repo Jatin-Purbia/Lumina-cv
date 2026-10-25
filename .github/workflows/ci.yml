@@ -1,8 +1,20 @@
-name: core and web scaffold
-on: [push, pull_request]
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   core:
+    name: core (python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
     defaults:
       run:
         working-directory: core
@@ -10,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: core/pyproject.toml
       - name: Install CPU PyTorch
@@ -38,4 +50,13 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
       - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+  docker:
+    name: docker build (api)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t lumina-api:ci -f core/Dockerfile core

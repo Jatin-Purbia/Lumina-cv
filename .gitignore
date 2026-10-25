@@ -16,3 +16,6 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 Thumbs.db
+
+# Written by `next dev` in some environments; not part of this repo.
+web/AGENTS.md
