@@ -992,3 +992,54 @@ def _to_plain(obj: object) -> dict[str, Any]:
         else:
             out[item.name] = value
     return out
+
+
+def config_to_dict(config: Config) -> dict[str, Any]:
+    """Return the validated config as plain nested dicts and scalars (checkpoint payloads).
+
+    Args:
+        config: Config to serialize; validated first.
+
+    Returns:
+        Plain ``dict`` tree with float fields normalized to float; inverse of
+        ``config_from_dict``.
+
+    Raises:
+        ValueError: The config fails validation.
+    """
+    config.validate()
+    return _to_plain(config)
+
+
+def config_from_dict(data: Mapping[str, object]) -> Config:
+    """Build and validate a Config from the plain dict produced by ``config_to_dict``.
+
+    Args:
+        data: Complete nested mapping (every key present, no unknown keys).
+
+    Returns:
+        Validated frozen Config.
+
+    Raises:
+        ValueError: Missing/unknown keys, wrong types, or bound violations.
+    """
+    config = cast(Config, _build(Config, dict(data), "", False))
+    config.validate()
+    return config
+
+
+def override_config(config: Config, overrides: Mapping[str, object] | None) -> Config:
+    """Apply dotted CLI-style overrides to an existing Config; ``None`` values mean absent.
+
+    Args:
+        config: Base config (for example one restored from a checkpoint).
+        overrides: Dotted names such as ``flags.light`` or ``model.curve_scale``.
+
+    Returns:
+        New validated Config; the input is unchanged.
+
+    Raises:
+        ValueError: Unknown override names or a result that fails validation.
+    """
+    merged = _apply_overrides(_to_plain(config), overrides, False)
+    return config_from_dict(merged)
