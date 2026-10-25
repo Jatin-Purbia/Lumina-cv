@@ -8,11 +8,13 @@ instead of being loaded silently.
 
 from __future__ import annotations
 
+import copy
+import functools
 import os
 import platform
 import random
 import subprocess
-import tempfile
+import uuid
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -58,8 +60,12 @@ class LoadedCheckpoint:
     provenance: dict[str, str]
 
 
+@functools.lru_cache(maxsize=1)
 def _git_commit() -> str:
-    """Best-effort current git commit hash for provenance; ``unknown`` when unavailable."""
+    """Best-effort current git commit hash for provenance; ``unknown`` when unavailable.
+
+    Cached per process: every checkpoint of a run records the commit the run started from.
+    """
     try:
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -131,8 +137,8 @@ def save_checkpoint(
         ValueError: Negative epoch or an invalid config.
         FileNotFoundError: The destination directory does not exist.
     """
-    if epoch < 0:
-        raise ValueError(f"epoch must be >= 0; got {epoch}")
+    if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 0:
+        raise ValueError(f"epoch must be an int >= 0; got {epoch!r}")
     path = Path(path)
     if not path.parent.is_dir():
         raise FileNotFoundError(f"checkpoint directory does not exist: {path.parent}")
@@ -154,13 +160,18 @@ def save_checkpoint(
         "rng": _capture_rng(),
         "provenance": record,
     }
-    handle, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
-    os.close(handle)
+    # Write next to the destination under a unique name (default file permissions, unlike
+    # mkstemp's 0600), flush to disk, then rename: readers see the old file or the complete new
+    # one, never a partial file, and a failure removes the temporary file.
+    tmp_path = path.parent / f"{path.name}.{os.getpid()}.{uuid.uuid4().hex[:8]}.tmp"
     try:
-        torch.save(payload, tmp_name)
-        os.replace(tmp_name, path)
+        with tmp_path.open("xb") as handle:
+            torch.save(payload, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
     except BaseException:
-        Path(tmp_name).unlink(missing_ok=True)
+        tmp_path.unlink(missing_ok=True)
         raise
 
 
@@ -204,12 +215,36 @@ def read_checkpoint(path: Path) -> dict[str, Any]:
             f"unsupported checkpoint schema_version {payload['schema_version']!r}; "
             f"this build reads version {SCHEMA_VERSION}"
         )
+    epoch = payload["epoch"]
+    if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 0:
+        raise ValueError(f"checkpoint {path} has an invalid epoch {epoch!r}")
+    for name in ("config", "flags", "model", "optimizer", "rng", "provenance"):
+        if not isinstance(payload[name], dict):
+            raise ValueError(
+                f"checkpoint {path} field {name!r} must be a mapping; "
+                f"got {type(payload[name]).__name__}"
+            )
+    if not all(isinstance(value, torch.Tensor) for value in payload["model"].values()):
+        raise ValueError(f"checkpoint {path} model state holds non-tensor entries")
+    for name in ("python", "numpy", "torch", "cuda"):
+        if name not in payload["rng"]:
+            raise ValueError(f"checkpoint {path} rng state lacks {name!r}")
     return dict(payload)
+
+
+def _stored_config(payload: Mapping[str, Any], path: Path) -> Config:
+    """Rebuild the stored Config, turning any failure into a ValueError naming the file."""
+    try:
+        return config_from_dict(payload["config"])
+    except ValueError as err:
+        raise ValueError(f"checkpoint {path} holds an invalid config: {err}") from None
+    except (TypeError, KeyError, AttributeError) as err:
+        raise ValueError(f"checkpoint {path} holds a malformed config: {err!r}") from None
 
 
 def checkpoint_config(path: Path) -> Config:
     """Return the resolved Config stored in a checkpoint without touching any model."""
-    return config_from_dict(read_checkpoint(path)["config"])
+    return _stored_config(read_checkpoint(path), Path(path))
 
 
 def _check_compatible(saved: Config, expected: Config, exact: bool) -> None:
@@ -236,6 +271,30 @@ def _check_compatible(saved: Config, expected: Config, exact: bool) -> None:
             raise ValueError("exact resume requires an identical model section")
 
 
+def _apply_state(
+    payload: Mapping[str, Any], model: NTAZeroDCE, optimizer: Optimizer | None, path: Path
+) -> None:
+    """Copy model (and optimizer + RNG) state in; on any failure restore everything.
+
+    A rejected checkpoint must not leave a half-loaded model, so the previous model weights,
+    optimizer state and RNG states are put back before the ValueError propagates.
+    """
+    model_backup = {key: value.detach().clone() for key, value in model.state_dict().items()}
+    optimizer_backup = copy.deepcopy(optimizer.state_dict()) if optimizer is not None else None
+    rng_backup = _capture_rng() if optimizer is not None else None
+    try:
+        model.load_state_dict(payload["model"], strict=True)
+        if optimizer is not None:
+            optimizer.load_state_dict(payload["optimizer"])
+            _restore_rng(payload["rng"])
+    except Exception as err:
+        model.load_state_dict(model_backup, strict=True)
+        if optimizer is not None and optimizer_backup is not None and rng_backup is not None:
+            optimizer.load_state_dict(optimizer_backup)
+            _restore_rng(rng_backup)
+        raise ValueError(f"checkpoint {path} cannot be loaded here: {err}") from None
+
+
 def load_checkpoint_full(
     path: Path,
     model: NTAZeroDCE,
@@ -259,21 +318,12 @@ def load_checkpoint_full(
         FileNotFoundError: Missing file.
     """
     payload = read_checkpoint(path)
-    saved = config_from_dict(payload["config"])
+    saved = _stored_config(payload, Path(path))
     if asdict(saved.flags) != payload["flags"]:
         raise ValueError("checkpoint flags disagree with its stored config")
     if expected_config is not None:
         _check_compatible(saved, expected_config, exact=optimizer is not None)
-    try:
-        model.load_state_dict(payload["model"], strict=True)
-    except RuntimeError as err:
-        raise ValueError(f"checkpoint weights do not match the model architecture: {err}") from None
-    if optimizer is not None:
-        try:
-            optimizer.load_state_dict(payload["optimizer"])
-        except (ValueError, KeyError) as err:
-            raise ValueError(f"checkpoint optimizer state is incompatible: {err}") from None
-        _restore_rng(payload["rng"])
+    _apply_state(payload, model, optimizer, Path(path))
     return LoadedCheckpoint(
         config=saved,
         epoch=int(payload["epoch"]),
