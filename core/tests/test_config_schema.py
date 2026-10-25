@@ -58,7 +58,8 @@ def _with(path: str, value: object, base: Config | None = None) -> Config:
     """Return a copy of base (default Config()) with one dotted leaf replaced, unvalidated."""
     config = Config() if base is None else base
     if "." not in path:
-        return dataclasses.replace(config, **{path: value})
+        top: dict[str, Any] = {path: value}
+        return dataclasses.replace(config, **top)
     section, name = path.split(".")
     record = dataclasses.replace(getattr(config, section), **{name: value})
     return dataclasses.replace(config, **{section: record})
