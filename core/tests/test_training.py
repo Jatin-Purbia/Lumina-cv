@@ -8,8 +8,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from torch import Tensor
-
 from _training_helpers import (
     FULL_FLAGS,
     make_model_and_optimizer,
@@ -17,6 +15,8 @@ from _training_helpers import (
     tiny_config,
     write_test_video,
 )
+from torch import Tensor
+
 from nta_zerodce.training.ablation import parse_matrix
 from nta_zerodce.training.checkpoint import read_checkpoint
 from nta_zerodce.training.config import Config, load_config
@@ -197,7 +197,7 @@ def test_unknown_loss_and_missing_context_inputs_are_rejected(tmp_path: Path) ->
     config = tiny_config(tmp_path, {"edge": True}, make_images=False)
     spec = active_losses(config)["edge"]
     with pytest.raises(ValueError, match=r"requires context inputs \['gain'\]"):
-        _call_loss("edge", spec, {"image": 0, "enhanced": 0, "sigma": 0}, config)  # type: ignore[dict-item]
+        _call_loss("edge", spec, {"image": 0, "enhanced": 0, "sigma": 0}, config)
     with pytest.raises(ValueError, match="no train-step adapter"):
         _call_loss("mystery", spec.__class__(spec.callable, None, 1.0, ()), {}, config)
 

@@ -16,14 +16,14 @@ from typing import Any
 import numpy as np
 import pytest
 import yaml
-from PIL import Image
-
 from _training_helpers import (
     CONFIGS,
     make_model_and_optimizer,
     tiny_config,
     write_test_video,
 )
+from PIL import Image
+
 from nta_zerodce.data.image_dataset import make_synthetic_images
 from nta_zerodce.training.ablation import REQUIRED_ROWS, expand_matrix, parse_matrix
 from nta_zerodce.training.checkpoint import read_checkpoint, save_checkpoint
@@ -494,11 +494,11 @@ def test_ablate_trains_evaluates_skips_forces_and_resumes(
     assert "[done (skip)]" in capsys.readouterr().out
 
     # --force retrains.
-    calls: list[tuple[str | None, Path | None]] = []
+    calls: list[tuple[str, Path | None]] = []
 
-    def spy(config: Config, resume: Path | None = None, **kwargs: Any) -> Path:
-        calls.append((kwargs.get("run_name"), resume))
-        return original(config, resume, **kwargs)
+    def spy(config: Config, resume: Path | None = None, **kwargs: Path | str | None) -> Path:
+        calls.append((str(kwargs.get("run_name")), resume))
+        return Path(original(config, resume, **kwargs))
 
     monkeypatch.setattr(ablate_script, "train", spy)
     assert ablate_script.main([*args, "--force", "--epochs", "1"]) == 0

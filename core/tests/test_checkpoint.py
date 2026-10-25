@@ -8,15 +8,14 @@ import math
 import random
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 import numpy as np
 import pytest
 import torch
-
 from _training_helpers import make_model_and_optimizer, states_equal, tiny_config
+
 from nta_zerodce.models.factory import build_model
-from nta_zerodce.training import checkpoint as ckpt
 from nta_zerodce.training.checkpoint import (
     FORMAT_VERSION,
     checkpoint_config,
@@ -115,11 +114,11 @@ def test_failed_write_leaves_no_partial_file(
     model, optimizer = _trained_pair(config)
     path = tmp_path / "atomic.pt"
 
-    def boom(obj: object, handle: Any) -> None:
+    def boom(obj: object, handle: IO[bytes]) -> None:
         handle.write(b"partial bytes")
         raise RuntimeError("disk full")
 
-    monkeypatch.setattr(ckpt.torch, "save", boom)
+    monkeypatch.setattr(torch, "save", boom)
     with pytest.raises(RuntimeError, match="disk full"):
         save_checkpoint(path, model, optimizer, config, 0)
     assert list(tmp_path.iterdir()) == []
@@ -133,10 +132,10 @@ def test_failed_overwrite_keeps_the_previous_checkpoint(
     save_checkpoint(path, model, optimizer, config, 1)
     before = path.read_bytes()
 
-    def boom(obj: object, handle: Any) -> None:
+    def boom(obj: object, handle: IO[bytes]) -> None:
         raise RuntimeError("interrupted")
 
-    monkeypatch.setattr(ckpt.torch, "save", boom)
+    monkeypatch.setattr(torch, "save", boom)
     with pytest.raises(RuntimeError):
         save_checkpoint(path, model, optimizer, config, 2)
     assert path.read_bytes() == before
