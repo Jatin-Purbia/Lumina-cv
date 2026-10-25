@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from torch import Tensor
 
+from nta_zerodce.losses._ops import luminance, pool_mean
+
 
 def exposure_loss(output: Tensor, target: float = 0.6, patch_size: int = 16) -> Tensor:
     """Control baseline patch exposure.
@@ -20,9 +22,13 @@ def exposure_loss(output: Tensor, target: float = 0.6, patch_size: int = 16) -> 
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Baseline L_exp; reference-profile squared error; paper absolute variant documented. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Baseline L_exp = mean (P_k(Y(o)) - target)^2, the reference-profile squared error (the
+        paper's absolute variant mean|q-target| is documented in METHOD but not used here).
+        See docs/METHOD.md; baseline attribution [R1,R2].
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If the output is not RGB or is smaller than one patch.
     """
-    raise NotImplementedError("TODO: Control baseline patch exposure")
+    pooled = pool_mean(luminance(output), patch_size)
+    diff = pooled - target
+    return (diff * diff).mean()

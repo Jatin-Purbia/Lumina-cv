@@ -8,6 +8,11 @@ from __future__ import annotations
 from torch import Tensor
 
 
+def _check_same_shape(a: Tensor, b: Tensor) -> None:
+    if a.shape != b.shape:
+        raise ValueError(f"shape mismatch: {tuple(a.shape)} vs {tuple(b.shape)}")
+
+
 def noise_loss(predicted_sigma: Tensor, target_sigma: Tensor) -> Tensor:
     """Supervise the per-pixel noise branch.
 
@@ -19,12 +24,14 @@ def noise_loss(predicted_sigma: Tensor, target_sigma: Tensor) -> Tensor:
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 1; mean absolute standard-deviation error. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 1; L_noise = mean |sigma_hat - sigma_target| (target detached).
+        See docs/METHOD.md; extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If the shapes differ.
     """
-    raise NotImplementedError("TODO: Supervise the per-pixel noise branch")
+    _check_same_shape(predicted_sigma, target_sigma)
+    return (predicted_sigma - target_sigma.detach()).abs().mean()
 
 
 def invariance_loss(noisy_output: Tensor, teacher_output: Tensor) -> Tensor:
@@ -38,12 +45,14 @@ def invariance_loss(noisy_output: Tensor, teacher_output: Tensor) -> Tensor:
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; extensions are project
+        proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If the shapes differ.
     """
-    raise NotImplementedError("TODO: Enforce enhancement invariance to independent added noise")
+    _check_same_shape(noisy_output, teacher_output)
+    return (noisy_output - teacher_output.detach()).abs().mean()
 
 
 def fidelity_loss(output: Tensor, teacher_output: Tensor) -> Tensor:
@@ -57,9 +66,12 @@ def fidelity_loss(output: Tensor, teacher_output: Tensor) -> Tensor:
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 1; L1 synthetic fidelity; requires denoise, uses no real high-light GT. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 1; L1 synthetic fidelity mean |E(x+n).enhanced - stopgrad(E(x).enhanced_raw)|;
+        requires denoise, uses no real high-light GT. See docs/METHOD.md; extensions are project
+        proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If the shapes differ.
     """
-    raise NotImplementedError("TODO: Anchor synthetic denoising to clean-input curve output")
+    _check_same_shape(output, teacher_output)
+    return (output - teacher_output.detach()).abs().mean()

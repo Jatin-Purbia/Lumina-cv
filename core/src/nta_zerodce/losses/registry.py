@@ -1,12 +1,13 @@
-"""Loss metadata and future single-decorator registration; ARCHITECTURE loss graph.
+"""Loss metadata and single-decorator registration; ARCHITECTURE loss graph.
 
 See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from torch import Tensor
 
@@ -41,7 +42,7 @@ class LossSpec:
     required_inputs: tuple[str, ...]
 
 
-# Default metadata references stubs; no loss or decorator is executed at import.
+# Built-in metadata only; no loss or decorator is executed at import.
 LOSS_REGISTRY: dict[str, LossSpec] = {
     "spa": LossSpec(spatial_loss, None, 1.0, ("image", "enhanced")),
     "exp": LossSpec(exposure_loss, "not adaptive_exp", 10.0, ("enhanced",)),
@@ -95,6 +96,37 @@ LOSS_CONTRACTS: dict[str, tuple[str, str | None, float, tuple[str, ...]]] = {
 }
 
 
+# Flag names a loss gate may reference (the FeatureFlags fields). Kept here as plain strings so
+# the losses package never imports the training schema.
+KNOWN_FLAGS: frozenset[str] = frozenset(
+    {"noise_aware", "denoise", "edge", "chroma", "adaptive_exp", "temporal", "light"}
+)
+
+# register_loss writes here, never into LOSS_REGISTRY. LOSS_REGISTRY stays a table of the twelve
+# built-in specs (a collection-time audit compares it with LOSS_CONTRACTS), so importing this
+# module and registering extra losses never mutate the built-in metadata. build_losses
+# consults both tables.
+_DYNAMIC_REGISTRY: dict[str, LossSpec] = {}
+
+
+def _check_gate(flag: str | None) -> None:
+    """Validate a gate expression: None, a known flag name, or "not <known flag>"."""
+    if flag is None:
+        return
+    name = flag[4:] if flag.startswith("not ") else flag
+    if name not in KNOWN_FLAGS:
+        raise ValueError(f"unknown flag expression {flag!r}; known flags: {sorted(KNOWN_FLAGS)}")
+
+
+def _gate_active(flag: str | None, flags: dict[str, bool]) -> bool:
+    """Evaluate a validated gate expression against a flag map (missing flags are False)."""
+    if flag is None:
+        return True
+    if flag.startswith("not "):
+        return not flags.get(flag[4:], False)
+    return flags.get(flag, False)
+
+
 def register_loss(
     name: str, flag: str | None, default_weight: float, required_inputs: tuple[str, ...]
 ) -> Callable[[LossCallable], LossCallable]:
@@ -102,36 +134,77 @@ def register_loss(
 
     Args:
         name: Unique registry key.
-        flag: Schema activation flag, or None.
-        default_weight: Nonnegative scalar.
+        flag: Schema activation flag, ``"not <flag>"``, or None for an unconditional term.
+        default_weight: Nonnegative finite scalar.
         required_inputs: Ordered tensor/context argument names.
 
     Returns:
-        Decorator preserving the callable and installing one LossSpec.
+        Decorator preserving the callable and installing one LossSpec in the dynamic registry
+        (``_DYNAMIC_REGISTRY``), not in the module-level ``LOSS_REGISTRY`` metadata table.
 
     Method:
         CONTRIBUTING extension checklist; reject duplicate keys and unknown flags.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: When register_loss is called, for an empty or duplicate name (built-in or
+            previously registered), an unknown flag expression, or a negative or non-finite
+            weight.
     """
-    raise NotImplementedError("TODO: Register one loss through a decorator")
+    if not name:
+        raise ValueError("loss name must be non-empty")
+    if name in LOSS_REGISTRY or name in _DYNAMIC_REGISTRY:
+        raise ValueError(f"loss {name!r} is already registered")
+    _check_gate(flag)
+    if not math.isfinite(default_weight) or default_weight < 0:
+        raise ValueError(f"default_weight must be finite and nonnegative, got {default_weight}")
+    inputs = tuple(required_inputs)
+
+    def decorator(function: LossCallable) -> LossCallable:
+        if name in LOSS_REGISTRY or name in _DYNAMIC_REGISTRY:
+            raise ValueError(f"loss {name!r} is already registered")
+        _DYNAMIC_REGISTRY[name] = LossSpec(function, flag, float(default_weight), inputs)
+        return function
+
+    return decorator
 
 
 def build_losses(flags: dict[str, bool], weights: dict[str, float]) -> dict[str, LossSpec]:
     """Resolve active loss specifications.
 
     Args:
-        flags: Validated feature map, including denoise=>noise_aware.
-        weights: Full nonnegative weight map; adaptive_exp inherits exp weight.
+        flags: Validated feature map, including denoise=>noise_aware. Missing known flags are
+            treated as False; unknown keys are rejected.
+        weights: Full nonnegative weight map keyed like LossWeights (spa, exp, col, tv, edge,
+            chroma, highlight, noise, invariance, fidelity, temporal). ``adaptive_exp`` inherits
+            ``weights["exp"]``; ``highlight`` uses its own weight.
 
     Returns:
-        Active names and immutable specs; exp and adaptive_exp mutually exclusive.
+        Active names mapped to immutable specs, in registry order (built-ins first, then
+        dynamically registered). Each returned spec carries the resolved weight in
+        ``default_weight``. ``exp`` and ``adaptive_exp`` are mutually exclusive.
 
     Method:
-        METHOD total objective; missing runtime tensor inputs must be rejected.
+        METHOD total objective; the gate of each spec is evaluated against ``flags``.
+        Runtime tensor presence is checked by the training step, which owns the context.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Unknown flag key, denoise without noise_aware, or a missing, negative or
+            non-finite weight for an active loss.
     """
-    raise NotImplementedError("TODO: Resolve active loss specifications")
+    unknown = sorted(set(flags) - KNOWN_FLAGS)
+    if unknown:
+        raise ValueError(f"unknown flags: {unknown}")
+    if flags.get("denoise", False) and not flags.get("noise_aware", False):
+        raise ValueError("denoise requires noise_aware")
+    active: dict[str, LossSpec] = {}
+    for name, spec in {**LOSS_REGISTRY, **_DYNAMIC_REGISTRY}.items():
+        if not _gate_active(spec.flag, flags):
+            continue
+        key = "exp" if name == "adaptive_exp" else name
+        if key not in weights:
+            raise ValueError(f"missing weight {key!r} for active loss {name!r}")
+        weight = float(weights[key])
+        if not math.isfinite(weight) or weight < 0:
+            raise ValueError(f"weight {key!r} must be finite and nonnegative, got {weight}")
+        active[name] = replace(spec, default_weight=weight)
+    return active

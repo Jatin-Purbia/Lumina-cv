@@ -20,15 +20,15 @@ class Registry(Generic[T]):
             self: Generic Registry[T].
 
         Returns:
-            No value; future implementation owns a string-to-T mapping.
+            No value; owns a string-to-T mapping.
 
         Method:
             CONTRIBUTING registration convention.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            None.
         """
-        raise NotImplementedError("TODO: Construct an empty typed registry")
+        self._items: dict[str, T] = {}
 
     def register(self, name: str, value: T) -> None:
         """Register one unique name.
@@ -38,15 +38,19 @@ class Registry(Generic[T]):
             value: Metadata or callable of generic type T.
 
         Returns:
-            None; ValueError on duplicates.
+            None; ValueError on duplicates or empty names.
 
         Method:
             CONTRIBUTING fail-fast duplicate policy.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            ValueError: The name is not a nonempty string or is already registered.
         """
-        raise NotImplementedError("TODO: Register one unique name")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"registry name must be a nonempty string; got {name!r}")
+        if name in self._items:
+            raise ValueError(f"{name!r} is already registered")
+        self._items[name] = value
 
     def get(self, name: str) -> T:
         """Retrieve registered metadata.
@@ -61,6 +65,35 @@ class Registry(Generic[T]):
             CONTRIBUTING explicit lookup.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            KeyError: The name is not registered (the message lists the known names).
         """
-        raise NotImplementedError("TODO: Retrieve registered metadata")
+        try:
+            return self._items[name]
+        except KeyError:
+            known = ", ".join(self.names()) or "<none>"
+            raise KeyError(f"unknown name {name!r}; registered: {known}") from None
+
+    def names(self) -> list[str]:
+        """List registered names.
+
+        Args:
+            self: Registry.
+
+        Returns:
+            Names in sorted order (a new list).
+
+        Method:
+            Sorted keys for deterministic messages.
+
+        Raises:
+            None.
+        """
+        return sorted(self._items)
+
+    def __contains__(self, name: object) -> bool:
+        """Report whether a name is registered."""
+        return name in self._items
+
+    def __len__(self) -> int:
+        """Return the number of registered names."""
+        return len(self._items)

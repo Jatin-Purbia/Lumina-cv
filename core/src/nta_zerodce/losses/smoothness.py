@@ -18,9 +18,15 @@ def smoothness_loss(A: Tensor) -> Tensor:
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)); the two directional means are taken
+        independently over their own element counts. See docs/METHOD.md; baseline attribution
+        [R1,R2].
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If A is not 4-D or has a spatial side smaller than two.
     """
-    raise NotImplementedError("TODO: Regularize curve maps spatially")
+    if A.dim() != 4 or A.shape[-2] < 2 or A.shape[-1] < 2:
+        raise ValueError(f"expected A of shape (B,C,H,W) with H,W>=2, got {tuple(A.shape)}")
+    dx = A[..., :, 1:] - A[..., :, :-1]
+    dy = A[..., 1:, :] - A[..., :-1, :]
+    return 2.0 * ((dx * dx).mean() + (dy * dy).mean())

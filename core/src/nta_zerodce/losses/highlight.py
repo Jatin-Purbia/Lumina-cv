@@ -5,7 +5,10 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch
 from torch import Tensor
+
+from nta_zerodce.losses._ops import luminance, masked_mean
 
 
 def highlight_loss(image: Tensor, output: Tensor, threshold: float = 0.8) -> Tensor:
@@ -20,9 +23,18 @@ def highlight_loss(image: Tensor, output: Tensor, threshold: float = 0.8) -> Ten
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 4; masked positive luminance increase squared; empty mask returns graph-connected zero. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 4; masked_mean_1(relu(Y(o)-Y(x))^2, m_hi) with the detached mask
+        m_hi=1[Y(x)>threshold]. An empty mask yields exactly zero that is still connected to the
+        output graph (numerator sum(m*v) with m=0), so backward gives finite zero gradients.
+        See docs/METHOD.md; extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: If image and output shapes differ.
     """
-    raise NotImplementedError("TODO: Protect already bright input pixels")
+    if image.shape != output.shape:
+        raise ValueError(f"image {tuple(image.shape)} and output {tuple(output.shape)} differ")
+    y_in = luminance(image).detach()
+    y_out = luminance(output)
+    mask = (y_in > threshold).to(y_out.dtype)
+    increase = torch.relu(y_out - y_in)
+    return masked_mean(increase * increase, mask, channels=1)
