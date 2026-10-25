@@ -292,7 +292,10 @@ def _apply_state(
         if optimizer is not None and optimizer_backup is not None and rng_backup is not None:
             optimizer.load_state_dict(optimizer_backup)
             _restore_rng(rng_backup)
-        raise ValueError(f"checkpoint {path} cannot be loaded here: {err}") from None
+        raise ValueError(
+            f"checkpoint {path} cannot be loaded here (architecture or optimizer state does "
+            f"not match): {err}"
+        ) from None
 
 
 def load_checkpoint_full(

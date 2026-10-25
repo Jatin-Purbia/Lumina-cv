@@ -287,7 +287,8 @@ def train(
 
     Returns:
         Path of ``final.pt``. The resolved config, ``metrics.csv`` and ``val_metrics.csv`` are
-        written to the run directory.
+        written to the run directory. Resuming a checkpoint that already completed
+        ``training.epochs`` epochs trains nothing and just rewrites ``final.pt``.
 
     Method:
         EXPERIMENTS fixed schedule (Adam, grad clip, no scheduler); ``loop_step`` owns updates.
@@ -295,8 +296,8 @@ def train(
         ``log_every`` steps and at the end of each epoch.
 
     Raises:
-        ValueError: Invalid config, incompatible or unreadable checkpoint, or a changed
-            train/validation split on resume.
+        ValueError: Invalid config, incompatible or unreadable checkpoint, a checkpoint beyond
+            ``training.epochs``, or a changed train/validation split on resume.
         FileNotFoundError: Missing data roots (listed together) or checkpoint.
         FloatingPointError: A non-finite loss; nothing is stepped for that batch.
     """
@@ -326,6 +327,11 @@ def train(
     elapsed_before = 0.0
     if resume is not None:
         loaded = load_checkpoint_full(Path(resume), model, optimizer, expected_config=config)
+        if loaded.epoch + 1 > training.epochs:
+            raise ValueError(
+                f"cannot resume: the checkpoint completed {loaded.epoch + 1} epoch(s) but "
+                f"training.epochs is {training.epochs}"
+            )
         for key in ("train_split_sha256", "val_split_sha256"):
             before = loaded.provenance.get(key)
             if before is not None and before != data.provenance[key]:
@@ -417,10 +423,6 @@ def train(
                 provenance=provenance(global_step),
             )
 
-    if last_epoch < 0:
-        raise ValueError(
-            f"nothing to train: epochs={training.epochs} but the run starts at epoch {start_epoch}"
-        )
     save_checkpoint(
         final_path, model, optimizer, config, last_epoch, provenance=provenance(global_step)
     )

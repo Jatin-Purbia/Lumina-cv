@@ -176,6 +176,8 @@ def run(args: argparse.Namespace) -> None:
                 raise RuntimeError(str(err)) from err
             status = "trained"
         eval_csv = leaf / "eval.csv"
+        if status == "trained":
+            eval_csv.unlink(missing_ok=True)  # never report metrics of a replaced checkpoint
         sets = locate_eval_sets(spec.config)
         if sets.any and (status == "trained" or not eval_csv.is_file()):
             model, config, device = load_inference_model(final, None, None, args.device or "auto")

@@ -129,6 +129,8 @@ def _plan_images(source: Path, output: Path) -> list[tuple[Path, Path]]:
                 f"(got {output})"
             )
         target = output / f"{source.stem}.png" if directory_mode else output
+        if target.resolve() == source.resolve():
+            raise ValueError("output would overwrite the input file")
         return [(source, target)]
     files = index_files(source, IMAGE_EXTENSIONS)
     if not files:
@@ -164,8 +166,6 @@ def _enhance_images(
     for source, target in plan:
         file_started = time.perf_counter()
         try:
-            if source.resolve() == target.resolve():
-                raise ValueError("output would overwrite the input file")
             image = read_image(source)
             height, width = int(image.shape[2]), int(image.shape[3])
             if min(height, width) < MIN_SIDE:
