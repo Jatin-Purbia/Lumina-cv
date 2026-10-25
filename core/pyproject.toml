@@ -25,7 +25,10 @@ line-length = 100
 select = ["E4", "E7", "E9", "F", "I", "UP", "ANN"]
 
 [tool.mypy]
-python_version = "3.10"
+# numpy 2.5+ ships stubs using Python 3.12 `type` statements, which mypy rejects when it
+# targets 3.10, and mypy ignores follow_imports=skip for installed packages. Type-check
+# against 3.12; runtime 3.10 compatibility is enforced by ruff target-version and CI on 3.10.
+python_version = "3.12"
 strict = true
 follow_imports = "silent"
 mypy_path = "src"
@@ -41,7 +44,7 @@ xfail_strict = true
 module = ["yaml.*"]
 ignore_missing_imports = true
 
-# Third-party tensor internals are opaque at M0; project signatures remain strict.
+# Third-party tensor internals are opaque; project signatures remain strict.
 [[tool.mypy.overrides]]
 module = ["torch", "torch.*"]
 follow_imports = "skip"

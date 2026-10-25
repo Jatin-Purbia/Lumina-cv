@@ -68,4 +68,3 @@ def temporal_loss(
     weight = mask.detach() * in_bounds
     residual = (current_output - warped_previous).abs()
     return _masked_mean_rgb(residual, weight)
-

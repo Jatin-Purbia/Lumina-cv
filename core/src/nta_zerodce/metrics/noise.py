@@ -29,7 +29,9 @@ def noise_estimate(image: Tensor, flat_mask: Tensor | None = None) -> Tensor:
         K=[[1,-2,1],[-2,4,-2],[1,-2,1]] is applied to Y = mean RGB with valid 3x3
         responses only. With a flat_mask, a response counts only if all nine pixels of its
         3x3 support are inside the mask. sigma = sqrt(pi/2) * sum|response| /
-        (6 * valid_count); NaN when valid_count is zero.
+        (6 * valid_count); NaN when valid_count is zero. The estimate is the noise of the
+        mean-RGB intensity: identical noise in R, G, B gives sigma, independent channel
+        noise gives sigma/sqrt(3).
 
     Raises:
         ValueError: Invalid image, image smaller than 3x3, flat_mask not (B,1,H,W) binary

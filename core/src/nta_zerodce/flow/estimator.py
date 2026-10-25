@@ -14,7 +14,7 @@ I0(p) ~ I1(p + flow(p)), and requires C-contiguous uint8 inputs.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Protocol
 
 import cv2
 import numpy as np
@@ -22,6 +22,15 @@ import torch
 from torch import Tensor
 
 from nta_zerodce.training.config import FlowConfig
+
+
+class _DisLike(Protocol):
+    """The part of cv2.DISOpticalFlow used here."""
+
+    def calc(self, i0: np.ndarray, i1: np.ndarray, flow: None) -> np.ndarray:
+        """Return the (H,W,2) float32 flow from i0 to i1."""
+        ...
+
 
 #: Smallest (downscaled) side DIS is asked to process. OpenCV 5.0.0 itself fails below 12.
 MIN_FLOW_SIDE = 16
@@ -39,7 +48,7 @@ def _preset_constant(preset: str) -> int:
     return {"ultrafast": 0, "fast": 1, "medium": 2}[preset]
 
 
-def _create_dis(preset: str) -> Any:
+def _create_dis(preset: str) -> _DisLike:
     """Create an OpenCV DIS optical-flow object, supporting the 4.x and 5.x APIs.
 
     Raises:
@@ -48,10 +57,10 @@ def _create_dis(preset: str) -> Any:
     constant = _preset_constant(preset)
     cls = getattr(cv2, "DISOpticalFlow", None)
     if cls is not None and hasattr(cls, "create"):
-        return cls.create(constant)
+        return cls.create(constant)  # type: ignore[no-any-return]
     factory = getattr(cv2, "DISOpticalFlow_create", None)
     if factory is not None:
-        return factory(constant)
+        return factory(constant)  # type: ignore[no-any-return]
     available = sorted(name for name in dir(cv2) if "DIS" in name and "Optical" in name)
     raise RuntimeError(
         f"OpenCV {cv2.__version__} does not provide DIS optical flow "

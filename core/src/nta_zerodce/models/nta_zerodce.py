@@ -182,7 +182,9 @@ class NTAZeroDCE(nn.Module):
         raw = apply_curves(image, A, self.iterations)
         enhanced = raw
         if self.denoiser is not None:
-            gain = compute_gain(image, raw, self.gain_window, self.gain_min, self.gain_max, self.eps)
+            gain = compute_gain(
+                image, raw, self.gain_window, self.gain_min, self.gain_max, self.eps
+            )
             enhanced = self.denoiser(raw, sigma, gain)
         return {"enhanced": enhanced, "enhanced_raw": raw, "A": A, "sigma": sigma}
 

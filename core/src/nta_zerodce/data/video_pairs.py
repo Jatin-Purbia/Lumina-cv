@@ -69,7 +69,9 @@ class VideoPairDataset(Dataset[dict[str, Tensor]]):
             NotADirectoryError: If ``root`` is not a directory.
         """
         if paired_root is not None:
-            raise ValueError("VideoPairDataset has no high-light references; paired_root must be None")
+            raise ValueError(
+                "VideoPairDataset has no high-light references; paired_root must be None"
+            )
         if isinstance(frame_gap, bool) or not isinstance(frame_gap, int) or frame_gap < 1:
             raise ValueError(f"frame_gap must be an integer >= 1, got {frame_gap!r}")
         if (

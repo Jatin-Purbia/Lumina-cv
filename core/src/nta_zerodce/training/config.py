@@ -631,7 +631,8 @@ def _validate_training(training: TrainingConfig) -> None:
     _gt("training.adam_eps", training.adam_eps, 0.0)
     _ge("training.weight_decay", training.weight_decay, 0.0)
     _gt("training.grad_clip", training.grad_clip, 0.0)
-    _ge("training.seed", training.seed, 0)
+    if not 0 <= training.seed <= 2**32 - 1:
+        _fail("training.seed", "in [0, 2**32 - 1] (the NumPy seed range)", training.seed)
     if not _DEVICE_PATTERN.match(training.device):
         _fail("training.device", "'auto', 'cpu', 'cuda' or 'cuda:N'", training.device)
 

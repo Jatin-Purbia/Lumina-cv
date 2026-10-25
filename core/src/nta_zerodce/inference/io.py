@@ -20,6 +20,8 @@ _IMAGE_WRITE_FORMATS = {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG"}
 _JPEG_QUALITY = 95
 _VIDEO_FOURCC = {".mp4": "mp4v", ".avi": "MJPG"}
 _UNSUPPORTED_MODES = ("I;16", "I", "F")
+# Bound at import so the helper stays available when tests replace ``cv2.VideoWriter``.
+_fourcc = cv2.VideoWriter.fourcc
 
 
 def _to_rgb(image: Image.Image) -> Image.Image:
@@ -229,7 +231,7 @@ def write_video(frames: Iterator[Tensor], path: Path, fps: float) -> None:
             height, width = array.shape[:2]
             if writer is None:
                 size = (width, height)
-                writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*codec), fps, size)
+                writer = cv2.VideoWriter(str(path), _fourcc(*codec), fps, size)
                 if not writer.isOpened():
                     raise RuntimeError(
                         f"cannot open video writer for {path} (codec {codec}, size {size})"

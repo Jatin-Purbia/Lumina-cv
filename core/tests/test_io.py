@@ -10,14 +10,13 @@ import pytest
 import torch
 from PIL import Image
 
-from nta_zerodce.inference import io as lumina_io
 from nta_zerodce.inference.io import read_image, read_video, write_image, write_video
 
 
 def _mp4_supported(tmp_path: Path) -> bool:
     """Whether this OpenCV build can open an mp4v writer."""
     probe = tmp_path / "probe.mp4"
-    writer = cv2.VideoWriter(str(probe), cv2.VideoWriter_fourcc(*"mp4v"), 10.0, (32, 32))
+    writer = cv2.VideoWriter(str(probe), cv2.VideoWriter.fourcc(*"mp4v"), 10.0, (32, 32))
     opened = bool(writer.isOpened())
     writer.release()
     probe.unlink(missing_ok=True)
@@ -30,8 +29,11 @@ def _rgb_array(height: int = 24, width: int = 40, seed: int = 0) -> np.ndarray:
 
 
 def _frames(count: int = 4, height: int = 32, width: int = 48) -> list[torch.Tensor]:
-    generator = torch.Generator().manual_seed(3)
-    base = torch.rand(1, 3, height, width, generator=generator)
+    # Smooth content: lossy codecs reproduce it closely (noise is their worst case).
+    yy, xx = torch.meshgrid(
+        torch.linspace(0, 1, height), torch.linspace(0, 1, width), indexing="ij"
+    )
+    base = torch.stack([xx, yy, 0.5 * (xx + yy)]).unsqueeze(0)
     return [torch.clamp(base * (0.5 + 0.1 * i), 0, 1) for i in range(count)]
 
 
@@ -179,7 +181,7 @@ def test_video_roundtrip_avi(tmp_path: Path) -> None:
     for original, got in zip(frames, decoded):
         assert got.shape == original.shape and got.dtype == torch.float32
         # MJPG is lossy; compare mean absolute error on 8-bit scale.
-        assert float((got - original).abs().mean()) < 0.06
+        assert float((got - original).abs().mean()) < 0.03
 
 
 def test_video_roundtrip_mp4(tmp_path: Path) -> None:
@@ -190,7 +192,7 @@ def test_video_roundtrip_mp4(tmp_path: Path) -> None:
     write_video(iter(frames), path, fps=12.5)
     decoded = list(read_video(path))
     assert len(decoded) == 3
-    assert float((decoded[0] - frames[0]).abs().mean()) < 0.08
+    assert float((decoded[0] - frames[0]).abs().mean()) < 0.03
 
 
 def test_video_channel_order_is_rgb(tmp_path: Path) -> None:
@@ -229,7 +231,7 @@ def test_write_video_releases_writer_on_error(
 
     class Spy:
         def __init__(self, *args: object) -> None:
-            self.inner = real_writer(*args)  # type: ignore[call-overload]
+            self.inner = real_writer(*args)
 
         def isOpened(self) -> bool:  # noqa: N802 - OpenCV naming
             return bool(self.inner.isOpened())
@@ -241,9 +243,11 @@ def test_write_video_releases_writer_on_error(
             released.append(True)
             self.inner.release()
 
-    monkeypatch.setattr(lumina_io.cv2, "VideoWriter", Spy)
+    monkeypatch.setattr(cv2, "VideoWriter", Spy)
     with pytest.raises(ValueError):
-        write_video(iter([torch.zeros(1, 3, 32, 32), torch.zeros(1, 3, 16, 16)]), tmp_path / "e.avi", 5.0)
+        write_video(
+            iter([torch.zeros(1, 3, 32, 32), torch.zeros(1, 3, 16, 16)]), tmp_path / "e.avi", 5.0
+        )
     assert released == [True]
 
 
@@ -260,7 +264,7 @@ def test_write_video_raises_when_writer_cannot_open(
         def release(self) -> None:
             self.released = True
 
-    monkeypatch.setattr(lumina_io.cv2, "VideoWriter", Closed)
+    monkeypatch.setattr(cv2, "VideoWriter", Closed)
     with pytest.raises(RuntimeError, match="cannot open video writer"):
         write_video(iter(_frames(1)), tmp_path / "c.avi", fps=10.0)
 
@@ -284,20 +288,20 @@ def test_read_video_releases_capture_on_close_exhaustion_and_error(
 
     class Spy:
         def __init__(self, *args: object) -> None:
-            self.inner = real_capture(*args)  # type: ignore[call-overload]
+            self.inner = real_capture(*args)
             state["opened"] += 1
 
         def isOpened(self) -> bool:  # noqa: N802
             return bool(self.inner.isOpened())
 
         def read(self) -> tuple[bool, np.ndarray]:
-            return self.inner.read()  # type: ignore[no-any-return]
+            return self.inner.read()
 
         def release(self) -> None:
             state["released"] += 1
             self.inner.release()
 
-    monkeypatch.setattr(lumina_io.cv2, "VideoCapture", Spy)
+    monkeypatch.setattr(cv2, "VideoCapture", Spy)
 
     stream = read_video(path)
     next(stream)

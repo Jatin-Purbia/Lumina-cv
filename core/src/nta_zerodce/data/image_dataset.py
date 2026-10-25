@@ -93,7 +93,9 @@ def scene_split(
     scenes: dict[str, list[Path]] = {}
     for path in files:
         relative = path.relative_to(root)
-        scene_id = relative.parent.as_posix() if relative.parent != Path(".") else relative.as_posix()
+        scene_id = (
+            relative.parent.as_posix() if relative.parent != Path(".") else relative.as_posix()
+        )
         scenes.setdefault(scene_id, []).append(path)
     ids = sorted(scenes)
     n_scenes = len(ids)

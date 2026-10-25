@@ -84,7 +84,7 @@ def reliability_mask(
         energy = energy + (warped_forward * warped_forward).sum(dim=1, keepdim=True)
         m_fb = (lhs <= alpha * energy + beta).to(current.dtype)
         warped_prev, _ = warp(previous.detach(), bwd)
-        diff = (current.detach().mean(dim=1, keepdim=True) - warped_prev.mean(dim=1, keepdim=True))
+        diff = current.detach().mean(dim=1, keepdim=True) - warped_prev.mean(dim=1, keepdim=True)
         m_photo = (diff.abs() < photometric_threshold).to(current.dtype)
         mask = m_fb * m_photo * in_bounds.to(current.dtype)
     return mask.detach()

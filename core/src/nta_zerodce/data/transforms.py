@@ -50,7 +50,9 @@ def _validate_crop(shape: tuple[int, int], crop_size: int) -> None:
         raise ValueError(f"crop_size {crop_size} exceeds image size {shape[0]}x{shape[1]} (HxW)")
 
 
-def _sample_origin(shape: tuple[int, int], crop_size: int, generator: Generator | None) -> tuple[int, int]:
+def _sample_origin(
+    shape: tuple[int, int], crop_size: int, generator: Generator | None
+) -> tuple[int, int]:
     """Draw the (top, left) origin uniformly over all valid crop positions."""
     height, width = shape
     high = torch.tensor([height - crop_size + 1, width - crop_size + 1])
