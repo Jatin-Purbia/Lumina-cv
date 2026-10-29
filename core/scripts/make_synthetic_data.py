@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import argparse
 
+from nta_zerodce.cli import dispatch
+
 
 def run(args: argparse.Namespace) -> None:
     """Execute the make_synthetic_data command after resolving validated settings.
@@ -15,22 +17,20 @@ def run(args: argparse.Namespace) -> None:
         args: Parsed CLI namespace; explicit overrides use None when absent.
 
     Returns:
-        None; planned delegation described below; all computation remains stubbed.
+        None; delegates to the documented local core workflow.
 
     Method:
         INTERFACES CLI: load_config -> dataset index -> make_pair/sample_noise -> local generated output.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError(
-        "TODO: Execute the make_synthetic_data command after resolving validated settings"
-    )
+    dispatch("make_synthetic_data", args)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="make_synthetic_data: interface scaffold; execution raises TODO."
+        description="make_synthetic_data: Noise- and Temporal-Aware Zero-DCE"
     )
     parser.add_argument("--config", default="configs/baseline.yaml", help="Experiment YAML")
     parser.add_argument("--noise", action=argparse.BooleanOptionalAction, default=None)

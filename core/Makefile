@@ -18,4 +18,4 @@ train-full:
 ablate:
 	$(PYTHON) scripts/ablate.py --matrix configs/ablation_matrix.yaml
 demo:
-	$(PYTHON) scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/full.pt --webcam 0
+	$(PYTHON) scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/last.pt --webcam 0
