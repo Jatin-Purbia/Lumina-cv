@@ -11,7 +11,7 @@ on Next.js or request handling.
 
 ## Scope and overview
 
-M0 defines a clean-room baseline from [R1](REFERENCES.md#r1), informed by the
+The implementation defines a clean-room baseline from [R1](REFERENCES.md#r1), informed by the
 reference profile [R2](REFERENCES.md#r2), plus five proposed extensions. Tensor
 contracts are normative in [INTERFACES](INTERFACES.md); equations and reduction
 choices are normative in [METHOD](METHOD.md). There are no algorithms yet.

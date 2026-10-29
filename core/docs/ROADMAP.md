@@ -2,7 +2,7 @@
 
 Estimates are working days of engineering after datasets/compute are available,
 not measured completion times. Owner is the repository maintainer (TBD by name).
-All behavioral APIs are stubs at M0. Evidence must be committed/documented before
+M0 is the historical scaffold. M1?M5 computational paths are implemented and covered by generated-data CPU tests; their real-data/visual exit criteria are still pending. M6 experiments and report are pending. See [implementation status](IMPLEMENTATION.md). Evidence must be recorded before
 marking a later milestone complete; [TESTING](TESTING.md) defines checks.
 
 | Milestone | Tasks | Owner | Estimate | Exit criteria / definition of done |
@@ -15,8 +15,7 @@ marking a later milestone complete; [TESTING](TESTING.md) defines checks.
 | M5 temporal | DIS adapter, analytic pairs, warp/masks, pair training, curve state and reset; optional output blend | maintainer | 4..7 days | known affine conventions pass; backward current-domain mask; no history at cuts/new sizes; real and synthetic motion/flicker tests with coverage and ghosting examples |
 | M6 ablation/report/demo | all 13 rows x 3 seeds, metrics CSVs/figures, light/curve-scale profiling, report and webcam demo | maintainer | 5..10 days plus GPU queue | reproducible artifacts/splits and CSV-backed tables; mean +/- std; held-out failure cases; measured latency; report sections complete; all relevant xfails removed |
 
-Implement one contract at a time. Replace the corresponding TODO and strict xfail
-with meaningful assertions together. Review formula/reduction/config changes in
+Implement one contract at a time. Add meaningful assertions with each behavior change. Review formula/reduction/config changes in
 the same Conventional Commit. Free-GPU limits may require checkpointed continuation;
 do not quietly reduce epochs for one ablation. Schedule changes require a new
 documented protocol shared across all affected rows.

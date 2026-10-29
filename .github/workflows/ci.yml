@@ -1,4 +1,4 @@
-name: core and web scaffold
+name: core and web
 on: [push, pull_request]
 jobs:
   core:

@@ -8,9 +8,9 @@ Pure tensor losses cannot move devices or read configuration files. Respect the
 dependency rules in [ARCHITECTURE](ARCHITECTURE.md). Do not copy the reference code;
 licensing/provenance requirements are in [NOTICE](../NOTICE.md).
 
-At M0 every handwritten callable remains a TODO raise; structural schema records,
+The historical M0 scaffold used TODO raises; structural schema records,
 module-level parser wiring and audit assertions are intentionally executable.
-Implementation starts at M1; update the stub audit and status when it does.
+Computational implementations now exist; add numerical assertions and update status with each change.
 
 ## Commit convention
 
@@ -36,6 +36,5 @@ Run pre-commit and make lint typecheck test docs-check before proposing a change
 7. Update README feature/status rows, ARCHITECTURE graph/matrix, INTERFACES contract,
    METHOD weights, EXPERIMENTS and ROADMAP. Run checks before review.
 
-This is the future extension procedure, not permission to add a sixth feature in
-M0. Layout changes require maintainer approval. Keep implementation and protocol
+This procedure covers the existing five extensions. Additional features require a separate scope decision. Keep implementation and protocol
 changes reviewable together; no fabricated measurements in docs/report.

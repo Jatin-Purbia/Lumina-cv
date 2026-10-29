@@ -51,7 +51,7 @@ false. Resolve/revalidate before construction. --webcam and --input conflict;
 enhancement/evaluation need checkpoints at runtime; --help has no data dependency.
 train --resume restores compatible optimizer/RNG; ablate --matrix expands base
 config/seed/flag rows; evaluate --output writes CSV; make_synthetic_data --output
-writes local private samples. Parsing runs at M0; run() bodies remain stubs.
+writes local private samples. Commands now execute these contracts; research validation remains pending.
 
 Checkpoint format v1 contains model state, optional optimizer, completed epoch,
 resolved config/flags, schema_version, RNG states and provenance (git/environment
@@ -62,9 +62,7 @@ fine-tune path must document compatible architecture and changed objective.
 
 ## Schema bounds and units
 
-Records below are dataclasses; generated constructors store fields, but validate,
-YAML load/save and registry execution are TODO. Never interpret constructing Config
-as validated. YAML baseline/full includes every record field; paths example and
+Records below are dataclasses. Validation, YAML load/save and registry execution are implemented. Constructing Config alone does not validate it. YAML baseline/full includes every record field; paths example and
 ablation matrix have specialized schemas described after the table.
 
 | Section | Units and validation |
@@ -245,11 +243,11 @@ VideoState stores optional previous_image, previous_A, previous_output; None mea
 reset, B=1 only, detached tensors on model device. LossSpec is immutable with
 callable (tensor loss), flag (name, not-flag expression or None), default_weight (nonnegative float),
 required_inputs (ordered context names). LOSS_REGISTRY is keyed by name and
-stores twelve default LossSpec records referencing pure loss stubs; no loss executes
-at import. Dynamic registration itself is stubbed.
+stores twelve default LossSpec records referencing pure tensor losses; no loss executes
+at import. Dynamic registration rejects duplicates and unknown gates.
 LOSS_CONTRACTS provides the complete declarative planned names/gates/weights/inputs.
 Registry[T] provides unique typed lookup; Config and its nested records are typed
-metadata, not computation. For every executable class, constructor/forward and
+metadata; model and orchestration perform computation. For every executable class, constructor/forward and
 other method contracts are listed below. Package __init__ files expose namespaces
 without eager imports or registry/model side effects.
 
@@ -257,7 +255,7 @@ without eager imports or registry/model side effects.
 
 The following inventory gives the exact pre-format signature and detailed contract
 for each source API. Source formatter may wrap lines without changing signatures.
-All are TODO stubs; docstrings supply implementation instructions.
+Implementations preserve these signatures; see source for validation and execution details.
 
 ### models/dce_net
 
@@ -265,7 +263,7 @@ Source: [models/dce_net.py](../src/nta_zerodce/models/dce_net.py)
 
 Class `DCENet`: Estimate eight RGB curve maps using seven symmetric skip convolutions.
 
-Constructor and forward contracts are below; all methods are stubs.
+Constructor and forward contracts are below; methods implement the contracts below.
 
 ```python
 def DCENet.__init__(self, in_channels: int=3, channels: int=32, iterations: int=8) -> None:
@@ -280,13 +278,13 @@ Args:
     iterations: Number of updates; fixed to 8 in this project.
 
 Returns:
-    No value; future implementation registers layers.
+    No value; registers layers.
 
 Method:
     METHOD baseline architecture; 3x3 stride 1, symmetric concatenations, tanh head.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -306,12 +304,12 @@ Method:
     METHOD baseline network, with identical skips for the light variant.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 Class `LightDCENet`: Estimate curves with a project depthwise-separable variant; not a Zero-DCE++ reproduction.
 
-Constructor and forward contracts are below; all methods are stubs.
+Constructor and forward contracts are below; methods implement the contracts below.
 
 ```python
 def LightDCENet.__init__(self, in_channels: int=3, channels: int=32, iterations: int=8) -> None:
@@ -326,13 +324,13 @@ Args:
     iterations: Number of updates; fixed to 8 in this project.
 
 Returns:
-    No value; future implementation registers layers.
+    No value; registers layers.
 
 Method:
     METHOD baseline architecture; 3x3 stride 1, symmetric concatenations, tanh head.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -352,7 +350,7 @@ Method:
     METHOD baseline network, with identical skips for the light variant.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -374,7 +372,7 @@ Method:
     Zero-DCE [R1], METHOD baseline: x_next = x + A*x*(1-x).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/noise_branch
@@ -395,13 +393,13 @@ Args:
     sigma_max: Positive bound in normalized RGB units.
 
 Returns:
-    No value; future implementation registers convolutional layers.
+    No value; registers convolutional layers.
 
 Method:
     METHOD extension 1: bounded sigmoid sigma; synthetic target sqrt(a*meanRGB(x)+b^2).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -421,7 +419,7 @@ Method:
     METHOD extension 1: bounded sigmoid sigma; synthetic target sqrt(a*meanRGB(x)+b^2).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/denoiser
@@ -442,13 +440,13 @@ Args:
     residual_scale: Positive bound in normalized RGB units.
 
 Returns:
-    No value; future implementation registers convolutional layers.
+    No value; registers convolutional layers.
 
 Method:
     METHOD extension 1: clamp(z - residual_scale*tanh(head([z,sigma*gain])),0,1).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -470,7 +468,7 @@ Method:
     METHOD extension 1: clamp(z - residual_scale*tanh(head([z,sigma*gain])),0,1).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/nta_zerodce
@@ -498,13 +496,13 @@ Args:
     config: Validated schema from training/config.py; denoise implies noise_aware.
 
 Returns:
-    No value; future implementation owns curve/noise/denoise submodules.
+    No value; owns curve/noise/denoise submodules.
 
 Method:
     ARCHITECTURE composition; flags gate construction.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -525,7 +523,7 @@ Method:
     METHOD composition and temporal inference; override bypasses curve estimation only.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/factory
@@ -549,7 +547,7 @@ Method:
     ARCHITECTURE flag matrix and METHOD architecture.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/spatial
@@ -575,7 +573,7 @@ Method:
     Baseline L_spa; valid four-neighbour region pairs, squared absolute differences. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/exposure
@@ -601,7 +599,7 @@ Method:
     Baseline L_exp; reference-profile squared error; paper absolute variant documented. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/color
@@ -625,7 +623,7 @@ Method:
     Baseline L_col = mean_batch sqrt(d_RG^4+d_RB^4+d_GB^4). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/smoothness
@@ -649,7 +647,7 @@ Method:
     Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/adaptive_exposure
@@ -678,7 +676,7 @@ Method:
     Extension 4 target formula and smoothstep in METHOD. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -700,7 +698,7 @@ Method:
     Extension 4; mean squared pooled luminance error, replaces L_exp. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/highlight
@@ -726,7 +724,7 @@ Method:
     Extension 4; masked positive luminance increase squared; empty mask returns graph-connected zero. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/chroma
@@ -756,7 +754,7 @@ Method:
     Extension 3; masked L1 distance of RGB/sum to detached local input chromaticity. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/edge
@@ -787,7 +785,7 @@ Method:
     Extension 2; normalized Sobel magnitude of output against gain*smoothed input gradient. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/noise
@@ -812,7 +810,7 @@ Method:
     Extension 1; mean absolute standard-deviation error. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -833,7 +831,7 @@ Method:
     Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -854,7 +852,7 @@ Method:
     Extension 1; L1 synthetic fidelity; requires denoise, uses no real high-light GT. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/temporal
@@ -880,7 +878,7 @@ Method:
     Extension 5; masked L1 current vs warp(previous,backward_flow); no detach on outputs. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/registry
@@ -915,7 +913,7 @@ Method:
     CONTRIBUTING extension checklist; reject duplicate keys and unknown flags.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -936,7 +934,7 @@ Method:
     METHOD total objective; missing runtime tensor inputs must be rejected.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/config
@@ -1157,7 +1155,7 @@ Method:
     INTERFACES validation checklist; denoise implies noise_aware; temporal pair source must be valid.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1178,7 +1176,7 @@ Method:
     INTERFACES precedence defaults < YAML < explicit CLI; reject unknown keys.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1199,7 +1197,7 @@ Method:
     INTERFACES round-trip/checkpoint contract; no implicit path rewriting.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/noise_synth
@@ -1225,7 +1223,7 @@ Method:
     METHOD extension 1: n=sqrt(a*x+b^2)*epsilon; sigma_target=sqrt(a*meanRGB(x)+b^2).
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/image_dataset
@@ -1247,13 +1245,13 @@ Args:
     paired_root: Optional aligned high-reference root for image evaluation only.
 
 Returns:
-    No value; future implementation records stable sorted paths and split manifests.
+    No value; records stable sorted paths.
 
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1273,7 +1271,7 @@ Method:
     DATA deterministic index, no sampling during length queries.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1293,7 +1291,7 @@ Method:
     INTERFACES dataset batch keys; RGB [0,1] CPU, shared pair geometry.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/video_pairs
@@ -1316,13 +1314,13 @@ Args:
     frame_gap: Positive source-frame separation, default 1.
 
 Returns:
-    No value; future implementation records stable sorted paths and split manifests.
+    No value; records stable sorted paths.
 
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1342,7 +1340,7 @@ Method:
     DATA deterministic index, no sampling during length queries.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1362,7 +1360,7 @@ Method:
     INTERFACES dataset batch keys; RGB [0,1] CPU, shared pair geometry.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/synthetic_pairs
@@ -1388,7 +1386,7 @@ Method:
     METHOD extension 5: affine inverse coordinate maps, exposure flicker and independent noise; DATA generation.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/transforms
@@ -1412,7 +1410,7 @@ Method:
     INTERFACES IO range contract; no gamma or white-balance correction.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1434,7 +1432,7 @@ Method:
     DATA shared geometry; crop before computing flow, or transform cached flow consistently.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/estimator
@@ -1459,7 +1457,7 @@ Method:
     INTERFACES: first(p) ~ second(p+flow(p)); DIS [R6]. Resize vectors by full/small dimensions.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1480,7 +1478,7 @@ Method:
     METHOD extension 5; compute both independently, never negate forward flow.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/warp
@@ -1506,7 +1504,7 @@ Method:
     INTERFACES: warp(b,f(a,b))(p)=b(p+f(p)); METHOD normalized grid formula.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/masks
@@ -1534,7 +1532,7 @@ Method:
     METHOD extension 5; compare backward + warp(forward,backward), in current coordinates.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1556,7 +1554,7 @@ Method:
     METHOD extension 5; conservative project heuristic, not a learned cut detector.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/enhancer
@@ -1582,7 +1580,7 @@ Method:
     REAL_TIME downsample estimator then apply eight curves to original RGB; no resized final RGB.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/video_enhancer
@@ -1610,13 +1608,13 @@ Args:
     config: Validated temporal, curve-scale and flow settings.
 
 Returns:
-    No value; future implementation owns VideoState.
+    No value; owns VideoState.
 
 Method:
     ARCHITECTURE inference graph; temporal flag false is frame-independent.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1636,7 +1634,7 @@ Method:
     METHOD scene cut handling; resolution changes also force reset.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1656,7 +1654,7 @@ Method:
     METHOD backward current->previous flow, mask-aware convex A blend and optional output blend.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/webcam
@@ -1682,7 +1680,7 @@ Method:
     REAL_TIME budget/profiling; sequential VideoEnhancer state and RGB/BGR boundary.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/io
@@ -1706,7 +1704,7 @@ Method:
     INTERFACES IO; ignore EXIF orientation only if documented; planned policy applies orientation.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1727,7 +1725,7 @@ Method:
     INTERFACES IO; round(255*x), PNG preferred for evaluation.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1747,7 +1745,7 @@ Method:
     DATA video protocol; preserve original timestamps in downstream metadata.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1763,13 +1761,13 @@ Args:
     fps: Positive source frame rate.
 
 Returns:
-    None; no audio copying promised at M0; release encoder on error.
+    None; audio is omitted; release encoder on error.
 
 Method:
     INTERFACES IO; timing and video-metric quantization caveats.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/fidelity
@@ -1794,7 +1792,7 @@ Method:
     EXPERIMENTS: 10*log10(1/MSE); higher is better.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1815,7 +1813,7 @@ Method:
     EXPERIMENTS: Gaussian 11x11 sigma=1.5, K1=.01 K2=.03, data_range=1; [R10].
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/noise
@@ -1840,7 +1838,7 @@ Method:
     EXPERIMENTS: Immerkaer kernel and calibration [R8]; texture causes bias.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/colour
@@ -1866,7 +1864,7 @@ Method:
     EXPERIMENTS acos(clamp(dot/(norms),-1,1)); not perceptual Delta-E.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/exposure
@@ -1891,7 +1889,7 @@ Method:
     EXPERIMENTS: mean(Y(output)>=threshold); report input clipping alongside output.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/temporal
@@ -1917,7 +1915,7 @@ Method:
     EXPERIMENTS temporal metric; also report mask coverage to expose flow rejection.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/trainer
@@ -1942,7 +1940,7 @@ Method:
     EXPERIMENTS 100 epochs, Adam, fixed seeds; loop_step owns updates.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/loop_step
@@ -1969,7 +1967,7 @@ Method:
     METHOD objective; teacher/masks/gain/targets detached, all active student paths differentiable.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/checkpoint
@@ -1990,13 +1988,13 @@ Args:
     epoch: Completed zero-based epoch index >=0.
 
 Returns:
-    None; future file contains model/optimizer states, config, flags, schema_version, epoch and RNG states.
+    None; file contains model/optimizer states, config, flags, schema_version, epoch and RNG states.
 
 Method:
     TESTING flag/config round-trip; atomic write and explicit checkpoint format version 1.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2019,7 +2017,7 @@ Method:
     INTERFACES checkpoints; portable CPU map_location then explicit caller transfer.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/logging
@@ -2045,7 +2043,7 @@ Method:
     EXPERIMENTS reporting; do not silently mix train/eval columns.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/seed
@@ -2064,13 +2062,13 @@ Args:
     deterministic: Request deterministic algorithms with explicit unsupported-op failures.
 
 Returns:
-    None; future implementation seeds CPU/CUDA and documents worker seeding.
+    None; seeds Python, NumPy, CPU and available CUDA streams.
 
 Method:
     EXPERIMENTS [17,29,43]; determinism does not guarantee identical cross-device results.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/device
@@ -2094,7 +2092,7 @@ Method:
     INTERFACES device rules; OpenCV flow remains CPU then caller transfers.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/registry
@@ -2114,13 +2112,13 @@ Args:
     self: Generic Registry[T].
 
 Returns:
-    No value; future implementation owns a string-to-T mapping.
+    No value; owns a string-to-T mapping.
 
 Method:
     CONTRIBUTING registration convention.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2141,7 +2139,7 @@ Method:
     CONTRIBUTING fail-fast duplicate policy.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2161,7 +2159,7 @@ Method:
     CONTRIBUTING explicit lookup.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ## Script run boundaries
@@ -2181,13 +2179,13 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; planned delegation described below; all computation remains stubbed.
+    None; delegates to the documented local core workflow.
 
 Method:
     INTERFACES CLI: load_config -> trainer.train; --video-dir overrides paths.video_dir.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/evaluate.py
@@ -2205,13 +2203,13 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; planned delegation described below; all computation remains stubbed.
+    None; delegates to the documented local core workflow.
 
 Method:
     INTERFACES CLI: load_config/build_model/load_checkpoint -> paired/unpaired/video metrics -> CSV.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/ablate.py
@@ -2229,13 +2227,13 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; planned delegation described below; all computation remains stubbed.
+    None; delegates to the documented local core workflow.
 
 Method:
     INTERFACES CLI: matrix inheritance -> seed/flag overrides -> trainer.train and evaluate.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/enhance.py
@@ -2253,13 +2251,13 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; planned delegation described below; all computation remains stubbed.
+    None; delegates to the documented local core workflow.
 
 Method:
     INTERFACES CLI: load_config/build_model/load_checkpoint -> image IO, VideoEnhancer or run_webcam.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/make_synthetic_data.py
@@ -2277,13 +2275,13 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; planned delegation described below; all computation remains stubbed.
+    None; delegates to the documented local core workflow.
 
 Method:
     INTERFACES CLI: load_config -> dataset index -> make_pair/sample_noise -> local generated output.
 
 Raises:
-    NotImplementedError: Scaffold only; implement this contract before use.
+    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 Additional schema bounds: model.gain_window is positive odd; temporal.histogram_bins

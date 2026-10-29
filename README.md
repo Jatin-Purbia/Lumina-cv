@@ -1,62 +1,52 @@
 # Lumina CV
 
-Separate workspaces for the future web demo and the Noise- and Temporal-Aware
-Zero-DCE core.
+Noise- and Temporal-Aware Zero-DCE for low-light images and video, with independent Python and web workspaces.
 
-| Workspace | Responsibility | Current state |
+| Workspace | Responsibility | Status |
 | --- | --- | --- |
-| [web](web/README.md) | Next.js demo UI | Empty App Router shell; home page renders nothing |
-| [core](core/README.md) | Python CV/backend logic, training and inference | Existing documented, typed research stubs |
+| [core](core/README.md) | Models, losses, data, optical flow, training, evaluation and inference | Implemented; covered by CPU numerical and local workflow tests |
+| [web](web/README.md) | Future Next.js demo | Intentionally blank App Router shell |
 
-```text
-Lumina-CV/
-  web/                     Next.js + React + TypeScript
-    app/layout.tsx         HTML shell
-    app/page.tsx           Empty page; UI will be built later
-  core/                    Independent Python package
-    src/nta_zerodce/        Models, losses, data, flow, inference and training
-    configs/ docs/ tests/ scripts/ notebooks/ report/
-  .github/workflows/ci.yml  Separate core and web checks
+The core implements the baseline and the five documented extensions: noise/denoise, edge preservation, chromaticity, adaptive exposure/highlights, and temporal consistency. The light estimator and curve-resolution option are also available. No HTTP API or web integration is specified or included.
+
+## Core
+
+Use Python 3.10+ and install from the independent workspace:
+
+```sh
+cd core
+python -m pip install -e ".[dev]"
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy
+python -m pytest
+python scripts/train.py --help
 ```
 
-## Web development
+Acquire and curate datasets manually using [DATA](core/docs/DATA.md), then edit the complete YAML paths in core/configs. Relative paths resolve against core/, including when a command is launched elsewhere. No dataset or trained weights are bundled.
 
-Use Node.js 22 LTS and npm. The minimal shell follows the
-[Next.js App Router installation guide](https://nextjs.org/docs/app/getting-started/installation).
+```sh
+python scripts/train.py --config configs/baseline.yaml
+python scripts/enhance.py --config configs/baseline.yaml --checkpoint checkpoints/last.pt --input data/unpaired --output runs/enhanced
+python scripts/evaluate.py --config configs/baseline.yaml --checkpoint checkpoints/last.pt --output runs/evaluation.csv
+```
+
+See [core usage](core/README.md), [architecture](core/docs/ARCHITECTURE.md), [interfaces](core/docs/INTERFACES.md), and [implementation status](core/docs/IMPLEMENTATION.md).
+
+## Web
+
+Use Node.js 22 LTS:
 
 ```sh
 cd web
 npm ci
 npm run dev
-```
-
-The home page at http://localhost:3000 is intentionally blank.
-
-```sh
 npm run typecheck
 npm run build
-npm start
 ```
 
-## Core development
+The home page at http://localhost:3000 intentionally renders nothing. UI design, API selection and browser enhancement integration remain deferred as specified by the original scaffold.
 
-The Python package remains named nta_zerodce; only its repository folder changed
-from nta-zerodce/ to core/. All source functions remain TODO stubs.
+## Research status
 
-```sh
-cd core
-python -m pip install -e ".[dev]"
-make lint typecheck test docs-check
-```
-
-See [core documentation](core/docs/ARCHITECTURE.md) for the ML architecture and
-[interfaces](core/docs/INTERFACES.md) for tensor/config contracts. Core commands
-resolve configs and local data paths relative to core/.
-
-## Separation
-
-The web workspace owns the future demo screens and browser interaction. The core
-owns CV processing and backend behavior. Develop and install each independently;
-web does not import Python source or run enhancement logic. A future HTTP API will
-connect the two once its endpoints and serving framework are chosen. No API server,
-upload UI or enhancement integration is implemented in this scaffold.
+Executable code and synthetic smoke checks do not establish enhancement quality, baseline parity, noise calibration on real cameras, or real-time speed. The 13-row, three-seed research protocol, held-out comparisons and report require actual datasets and training; their results tables remain empty.
