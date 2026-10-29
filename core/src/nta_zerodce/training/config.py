@@ -5,8 +5,13 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import copy
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
+import yaml
+
+from nta_zerodce.training.validation import config_from_dict, core_path, validate_config
 
 
 @dataclass(frozen=True)
@@ -375,9 +380,9 @@ class Config:
             INTERFACES validation checklist; denoise implies noise_aware; temporal pair source must be valid.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            ValueError: Invalid inputs or incompatible configuration.
         """
-        raise NotImplementedError("TODO: Validate schema bounds and cross-field constraints")
+        validate_config(self)
 
 
 def load_config(path: Path, overrides: dict[str, object] | None = None) -> Config:
@@ -394,9 +399,25 @@ def load_config(path: Path, overrides: dict[str, object] | None = None) -> Confi
         INTERFACES precedence defaults < YAML < explicit CLI; reject unknown keys.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Load, override and validate a YAML experiment")
+    path = core_path(path)
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Configuration must be a mapping")
+    data = copy.deepcopy(data)
+    for key, value in (overrides or {}).items():
+        if value is None:
+            continue
+        parts = key.split(".")
+        if (
+            len(parts) != 2
+            or parts[0] not in asdict(Config())
+            or parts[1] not in asdict(Config()).get(parts[0], {})
+        ):
+            raise ValueError(f"Unknown override: {key}")
+        data.setdefault(parts[0], {})[parts[1]] = value
+    return config_from_dict(data)
 
 
 def save_config(config: Config, path: Path) -> None:
@@ -413,6 +434,7 @@ def save_config(config: Config, path: Path) -> None:
         INTERFACES round-trip/checkpoint contract; no implicit path rewriting.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Serialize the resolved experiment schema")
+    config.validate()
+    path.write_text(yaml.safe_dump(asdict(config), sort_keys=False), encoding="utf-8")

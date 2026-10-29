@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from torch import Tensor
 
+from nta_zerodce.tensor_ops import masked_mean
+
 
 def highlight_loss(image: Tensor, output: Tensor, threshold: float = 0.8) -> Tensor:
     """Protect already bright input pixels.
@@ -23,6 +25,9 @@ def highlight_loss(image: Tensor, output: Tensor, threshold: float = 0.8) -> Ten
         Extension 4; masked positive luminance increase squared; empty mask returns graph-connected zero. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Protect already bright input pixels")
+    y = image.mean(1, keepdim=True).detach()
+    return masked_mean(
+        (output.mean(1, keepdim=True) - y).relu().square(), (y > threshold).to(output.dtype)
+    )

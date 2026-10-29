@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from torch import Tensor
 
+from nta_zerodce.flow.warp import warp
+from nta_zerodce.tensor_ops import masked_mean
+
 
 def temporal_loss(
     previous_output: Tensor, current_output: Tensor, backward_flow: Tensor, mask: Tensor
@@ -25,6 +28,7 @@ def temporal_loss(
         Extension 5; masked L1 current vs warp(previous,backward_flow); no detach on outputs. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Penalize reliable flow-aligned frame differences")
+    aligned, bounds = warp(previous_output, backward_flow.detach())
+    return masked_mean((current_output - aligned).abs(), mask.detach() * bounds)

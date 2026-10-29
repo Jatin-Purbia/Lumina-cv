@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nta_zerodce"
 version = "0.0.1"
-description = "Research interfaces for Noise- and Temporal-Aware Zero-DCE"
+description = "Noise- and Temporal-Aware Zero-DCE training and inference"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
@@ -41,11 +41,8 @@ xfail_strict = true
 module = ["yaml.*"]
 ignore_missing_imports = true
 
-# Third-party tensor internals are opaque at M0; project signatures remain strict.
+# Keep public Tensor/nn/optimizer types, without traversing unused compiler,
+# distributed, export and testing subsystems pulled in by torch's public imports.
 [[tool.mypy.overrides]]
-module = ["torch", "torch.*"]
+module = ["torch._dynamo.*", "torch._inductor.*", "torch.distributed.*", "torch.onnx.*", "torch.testing.*", "torch.fx.*", "torch._export.*", "torch.export.*", "torch.jit.*"]
 follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = ["nta_zerodce.models.*", "nta_zerodce.data.image_dataset", "nta_zerodce.data.video_pairs"]
-disallow_subclassing_any = false

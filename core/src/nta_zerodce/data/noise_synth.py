@@ -5,6 +5,7 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch
 from torch import Generator, Tensor
 
 
@@ -25,6 +26,16 @@ def sample_noise(
         METHOD extension 1: n=sqrt(a*x+b^2)*epsilon; sigma_target=sqrt(a*meanRGB(x)+b^2).
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Synthesize Gaussian-approximated Poisson-Gaussian noise")
+    if (a < 0).any() or (b < 0).any():
+        raise ValueError("Noise parameters must be nonnegative")
+    if a.ndim == 1:
+        a = a[:, None, None, None]
+    if b.ndim == 1:
+        b = b[:, None, None, None]
+    variance = a * image.mean(1, keepdim=True) + b.square()
+    sigma = variance.sqrt()
+    noise = torch.randn(image.shape, dtype=image.dtype, device=image.device, generator=generator)
+    channel_sigma = (a * image + b.square()).sqrt()
+    return (image + channel_sigma * noise).clamp(0, 1), sigma

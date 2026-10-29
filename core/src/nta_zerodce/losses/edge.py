@@ -5,7 +5,11 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch
+import torch.nn.functional as F
 from torch import Tensor
+
+from nta_zerodce.tensor_ops import masked_mean
 
 
 def edge_loss(
@@ -37,6 +41,25 @@ def edge_loss(
         Extension 2; normalized Sobel magnitude of output against gain*smoothed input gradient. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Match noise-reliable gain-scaled input edges")
+    coords = torch.arange(kernel_size, device=image.device, dtype=image.dtype) - kernel_size // 2
+    kernel = torch.exp(-coords.square() / (2 * smooth_sigma**2))
+    kernel = kernel / kernel.sum()
+    kernel = (kernel[:, None] * kernel[None, :])[None, None]
+    yin = image.mean(1, keepdim=True)
+    blurred = F.conv2d(F.pad(yin, (kernel_size // 2,) * 4, mode="reflect"), kernel)
+    sx = image.new_tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 8
+    sobel = torch.stack((sx, sx.T))[:, None]
+
+    def magnitude(value: Tensor) -> Tensor:
+        gradients = F.conv2d(F.pad(value, (1,) * 4, mode="reflect"), sobel)
+        return (gradients.square().sum(1, keepdim=True) + eps**2).sqrt() - eps
+
+    reference = magnitude(blurred).detach()
+    mask = (
+        ((reference - noise_multiplier * sigma.detach()) / (reference + eps)).clamp(0, 1).detach()
+    )
+    return masked_mean(
+        (magnitude(output.mean(1, keepdim=True)) - gain.detach() * reference).abs(), mask, eps
+    )

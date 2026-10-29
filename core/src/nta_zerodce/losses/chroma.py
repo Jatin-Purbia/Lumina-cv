@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from torch import Tensor
 
+from nta_zerodce.tensor_ops import local_mean, masked_mean, smoothstep
+
 
 def chroma_loss(
     image: Tensor,
@@ -36,6 +38,13 @@ def chroma_loss(
         Extension 3; masked L1 distance of RGB/sum to detached local input chromaticity. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Preserve reliable local chromaticity")
+    reference = local_mean(image / (image.sum(1, keepdim=True) + eps), window).detach()
+    chroma = output / (output.sum(1, keepdim=True) + eps)
+    mask = smoothstep(
+        image.mean(1, keepdim=True) - reliability_noise * sigma.detach(),
+        reliability_low,
+        reliability_high,
+    ).detach()
+    return masked_mean((chroma - reference).abs(), mask, eps)

@@ -21,6 +21,9 @@ def smoothness_loss(A: Tensor) -> Tensor:
         Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Regularize curve maps spatially")
+    zero = A.sum() * 0
+    dx = (A[..., 1:] - A[..., :-1]).square().mean() if A.shape[-1] > 1 else zero
+    dy = (A[..., 1:, :] - A[..., :-1, :]).square().mean() if A.shape[-2] > 1 else zero
+    return 2 * (dx + dy)

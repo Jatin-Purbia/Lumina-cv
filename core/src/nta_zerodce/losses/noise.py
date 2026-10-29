@@ -22,9 +22,9 @@ def noise_loss(predicted_sigma: Tensor, target_sigma: Tensor) -> Tensor:
         Extension 1; mean absolute standard-deviation error. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Supervise the per-pixel noise branch")
+    return (predicted_sigma - target_sigma.detach()).abs().mean()
 
 
 def invariance_loss(noisy_output: Tensor, teacher_output: Tensor) -> Tensor:
@@ -41,9 +41,9 @@ def invariance_loss(noisy_output: Tensor, teacher_output: Tensor) -> Tensor:
         Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Enforce enhancement invariance to independent added noise")
+    return (noisy_output - teacher_output.detach()).abs().mean()
 
 
 def fidelity_loss(output: Tensor, teacher_output: Tensor) -> Tensor:
@@ -60,6 +60,6 @@ def fidelity_loss(output: Tensor, teacher_output: Tensor) -> Tensor:
         Extension 1; L1 synthetic fidelity; requires denoise, uses no real high-light GT. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Anchor synthetic denoising to clean-input curve output")
+    return (output - teacher_output.detach()).abs().mean()

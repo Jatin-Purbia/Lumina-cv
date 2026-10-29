@@ -1,11 +1,8 @@
-"""Future behavioral assertions plus active scaffold audits; TESTING strategy.
-
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
-"""
+"""Executable documented contracts."""
 
 from __future__ import annotations
 
-import ast
+import argparse
 import re
 from dataclasses import asdict
 from pathlib import Path
@@ -14,53 +11,52 @@ from urllib.parse import unquote
 import pytest
 import yaml
 
+from nta_zerodce.cli import dispatch
 from nta_zerodce.losses.registry import LOSS_CONTRACTS, LOSS_REGISTRY
 from nta_zerodce.training.config import Config
+from nta_zerodce.training.validation import config_from_dict
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="M1-M6 implementation pending")
-def test_contract_1() -> None:
-    """load_config rejects unknown fields, negative/nonfinite weights, invalid crop/patch, curve/flow scale outside (0,1], and wrong scalar types.
-
-    Args:
-        No runtime arguments; construct the fixtures stated in the purpose.
-
-    Returns:
-        No value; assertions described above must pass when the stub is replaced.
-
-    Method:
-        docs/TESTING.md; remove xfail together with implementation, never to hide failures.
-
-    Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
-    """
-    raise NotImplementedError(
-        "TODO: load_config rejects unknown fields, negative/nonfinite weights, invalid crop/patch, curve/flow scale outside (0,1], and wrong scalar types"
-    )
-
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="M1-M6 implementation pending")
-def test_contract_2() -> None:
-    """Defaults and full YAML carry every dataclass field; full denoise implies noise; adaptive disables baseline exp; each ablation row changes only flags and seed.
-
-    Args:
-        No runtime arguments; construct the fixtures stated in the purpose.
-
-    Returns:
-        No value; assertions described above must pass when the stub is replaced.
-
-    Method:
-        docs/TESTING.md; remove xfail together with implementation, never to hide failures.
-
-    Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
-    """
-    raise NotImplementedError(
-        "TODO: Defaults and full YAML carry every dataclass field; full denoise implies noise; adaptive disables baseline exp; each ablation row changes only flags and seed"
-    )
+@pytest.mark.parametrize(
+    "section,key,value",
+    [
+        ("weights", "edge", -1),
+        ("weights", "edge", float("nan")),
+        ("weights", "edge", float("inf")),
+        ("model", "channels", True),
+        ("model", "iterations", 7),
+        ("model", "curve_scale", 0),
+        ("model", "gain_window", 4),
+        ("training", "crop_size", 17),
+        ("training", "workers", -1),
+        ("training", "lr", "0.1"),
+        ("flow", "align_corners", False),
+        ("flags", "edge", 1),
+        ("flags", "denoise", True),
+        ("paths", "run_dir", ""),
+        ("temporal", "pair_source", "other"),
+        ("noise", "a_max", 0.5),
+        ("loss", "unknown", 0.1),
+    ],
+)
+def test_invalid_config(section: str, key: str, value: object) -> None:
+    """Reject malformed scalar types, nonfinite values and cross-field violations."""
+    data = asdict(Config())
+    data[section][key] = value
+    with pytest.raises(ValueError):
+        config_from_dict(data)
 
 
-# Active collection-time checks avoid implementing a function in this stub-only scaffold.
+def test_ablation_matrix_preflight(tmp_path: Path) -> None:
+    """Malformed matrices fail before scheduling training."""
+    matrix = {"base_config": "configs/baseline.yaml", "seeds": [17, 17], "runs": []}
+    path = tmp_path / "matrix.yaml"
+    path.write_text(yaml.safe_dump(matrix))
+    with pytest.raises(ValueError, match="seeds"):
+        dispatch("ablate", argparse.Namespace(matrix=str(path), output=str(tmp_path / "ablations")))
+
+
+# Collection-time documentation and complete-configuration audits.
 # make docs-check collects this module; broken links fail during collection.
 ROOT = Path(__file__).resolve().parents[1]
 for document in [
@@ -88,20 +84,6 @@ assert matrix["seeds"] == [17, 29, 43]
 for row in matrix["runs"]:
     assert row["flags"].keys() == defaults["flags"].keys()
     assert not row["flags"]["denoise"] or row["flags"]["noise_aware"]
-
-# Every handwritten callable must be exactly a docstring followed by a TODO raise.
-for source in [*(ROOT / "src").rglob("*.py"), *(ROOT / "scripts").glob("*.py")]:
-    for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            assert ast.get_docstring(node), (source, node.name)
-            assert node.returns is not None, (source, node.name)
-            assert all(a.annotation is not None for a in node.args.args if a.arg != "self")
-            assert len(node.body) == 2 and isinstance(node.body[1], ast.Raise), (source, node.name)
-            raised = node.body[1].exc
-            assert isinstance(raised, ast.Call) and isinstance(raised.func, ast.Name)
-            assert raised.func.id == "NotImplementedError"
-            assert isinstance(raised.args[0], ast.Constant)
-            assert str(raised.args[0].value).startswith("TODO: ")
 
 assert LOSS_REGISTRY.keys() == LOSS_CONTRACTS.keys()
 for loss_name, loss_spec in LOSS_REGISTRY.items():

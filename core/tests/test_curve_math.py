@@ -1,71 +1,29 @@
-"""Future behavioral assertions plus active scaffold audits; TESTING strategy.
-
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
-"""
+"""Executable documented contracts."""
 
 from __future__ import annotations
 
-import pytest
+import torch
+
+from nta_zerodce.models.dce_net import apply_curves
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="M1-M6 implementation pending")
-def test_contract_1() -> None:
-    """A=0 leaves x unchanged after eight updates; x=0 and x=1 remain fixed for any A in [-1,1].
-
-    Args:
-        No runtime arguments; construct the fixtures stated in the purpose.
-
-    Returns:
-        No value; assertions described above must pass when the stub is replaced.
-
-    Method:
-        docs/TESTING.md; remove xfail together with implementation, never to hide failures.
-
-    Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
-    """
-    raise NotImplementedError(
-        "TODO: A=0 leaves x unchanged after eight updates; x=0 and x=1 remain fixed for any A in [-1,1]"
+def test_curve_math() -> None:
+    """Canonical sign, endpoints, iteration order, monotonicity and finite gradients."""
+    x = torch.linspace(0, 1, 81).reshape(1, 1, 9, 9).expand(1, 3, 9, 9).clone().requires_grad_()
+    maps = torch.zeros(1, 24, 9, 9, requires_grad=True)
+    assert torch.equal(apply_curves(x, maps), x)
+    for coefficient in (-1.0, -0.5, 0.5, 1.0):
+        result = apply_curves(x, maps + coefficient)
+        assert 0 <= result.min() <= result.max() <= 1
+        assert (result.flatten(2).diff() >= -1e-6).all()
+        assert result[0, 0, 0, 0] == 0 and result[0, 0, -1, -1] == 1
+    pixel = torch.full((1, 3, 1, 1), 0.25)
+    assert torch.allclose(
+        apply_curves(pixel, torch.full_like(pixel, 0.5), 1), torch.full_like(pixel, 0.34375)
     )
-
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="M1-M6 implementation pending")
-def test_contract_2() -> None:
-    """For A=.5 and x=.25, one step equals .34375; A=-.5 yields .15625; fixes sign and iteration-major RGB ordering.
-
-    Args:
-        No runtime arguments; construct the fixtures stated in the purpose.
-
-    Returns:
-        No value; assertions described above must pass when the stub is replaced.
-
-    Method:
-        docs/TESTING.md; remove xfail together with implementation, never to hide failures.
-
-    Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
-    """
-    raise NotImplementedError(
-        "TODO: For A=.5 and x=.25, one step equals .34375; A=-.5 yields .15625; fixes sign and iteration-major RGB ordering"
+    assert torch.allclose(
+        apply_curves(pixel, torch.full_like(pixel, -0.5), 1), torch.full_like(pixel, 0.15625)
     )
-
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="M1-M6 implementation pending")
-def test_contract_3() -> None:
-    """Eight updates preserve [0,1], are monotone for fixed A, and have finite autograd derivatives including boundaries.
-
-    Args:
-        No runtime arguments; construct the fixtures stated in the purpose.
-
-    Returns:
-        No value; assertions described above must pass when the stub is replaced.
-
-    Method:
-        docs/TESTING.md; remove xfail together with implementation, never to hide failures.
-
-    Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
-    """
-    raise NotImplementedError(
-        "TODO: Eight updates preserve [0,1], are monotone for fixed A, and have finite autograd derivatives including boundaries"
-    )
+    torch.autograd.backward(apply_curves(x, maps).sum())
+    assert x.grad is not None and torch.isfinite(x.grad).all()
+    assert maps.grad is not None and maps.grad.abs().sum() > 0

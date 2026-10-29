@@ -5,6 +5,7 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch.nn.functional as F
 from torch import Tensor
 
 
@@ -23,6 +24,6 @@ def exposure_loss(output: Tensor, target: float = 0.6, patch_size: int = 16) -> 
         Baseline L_exp; reference-profile squared error; paper absolute variant documented. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Control baseline patch exposure")
+    return (F.avg_pool2d(output.mean(1, keepdim=True), patch_size) - target).square().mean()

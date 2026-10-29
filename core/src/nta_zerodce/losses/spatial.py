@@ -5,6 +5,7 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch.nn.functional as F
 from torch import Tensor
 
 
@@ -23,6 +24,14 @@ def spatial_loss(image: Tensor, output: Tensor, patch_size: int = 4) -> Tensor:
         Baseline L_spa; valid four-neighbour region pairs, squared absolute differences. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Preserve local intensity contrast")
+    u = F.avg_pool2d(image.mean(1, keepdim=True), patch_size)
+    v = F.avg_pool2d(output.mean(1, keepdim=True), patch_size)
+    dx = ((v[..., 1:] - v[..., :-1]).abs() - (u[..., 1:] - u[..., :-1]).abs()).square().sum()
+    dy = (
+        ((v[..., 1:, :] - v[..., :-1, :]).abs() - (u[..., 1:, :] - u[..., :-1, :]).abs())
+        .square()
+        .sum()
+    )
+    return 2 * (dx + dy) / u.numel()

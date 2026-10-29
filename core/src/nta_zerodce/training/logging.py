@@ -5,6 +5,7 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 
@@ -23,6 +24,19 @@ def log_metrics(path: Path, step: int, metrics: dict[str, float]) -> None:
         EXPERIMENTS reporting; do not silently mix train/eval columns.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Append one stable-schema CSV log record")
+    names = ["step", *sorted(metrics)]
+    if "step" in metrics:
+        raise ValueError("step is reserved")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    exists = path.exists() and path.stat().st_size > 0
+    if exists:
+        with path.open(newline="", encoding="utf-8") as handle:
+            if next(csv.reader(handle)) != names:
+                raise ValueError("CSV metric schema changed")
+    with path.open("a", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=names)
+        if not exists:
+            writer.writeheader()
+        writer.writerow({"step": step, **metrics})

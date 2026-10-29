@@ -5,7 +5,10 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch
 from torch import Tensor
+
+from nta_zerodce.flow.warp import warp
 
 
 def reliability_mask(
@@ -33,9 +36,24 @@ def reliability_mask(
         METHOD extension 5; compare backward + warp(forward,backward), in current coordinates.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Compute a current-coordinate reliable-pixel mask")
+    with torch.no_grad():
+        warped_forward, bounds = warp(forward_flow.detach(), backward_flow.detach())
+        aligned, _ = warp(previous.detach(), backward_flow.detach())
+        error = (backward_flow + warped_forward).square().sum(1, keepdim=True)
+        limit = (
+            alpha
+            * (
+                backward_flow.square().sum(1, keepdim=True)
+                + warped_forward.square().sum(1, keepdim=True)
+            )
+            + beta
+        )
+        photo = (
+            current.mean(1, keepdim=True) - aligned.mean(1, keepdim=True)
+        ).abs() < photometric_threshold
+        return ((error <= limit) & photo).to(current.dtype) * bounds
 
 
 def is_scene_cut(previous: Tensor, current: Tensor, threshold: float = 0.3, bins: int = 32) -> bool:
@@ -53,6 +71,12 @@ def is_scene_cut(previous: Tensor, current: Tensor, threshold: float = 0.3, bins
         METHOD extension 5; conservative project heuristic, not a learned cut detector.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Detect a scene cut before reusing temporal state")
+    if previous.shape != current.shape:
+        return True
+    if previous.shape[0] != 1 or bins < 2 or not 0 <= threshold <= 1:
+        raise ValueError("Scene-cut detection requires one frame and valid histogram settings")
+    a = torch.histc(previous.detach().mean(1), bins=bins, min=0, max=1)
+    b = torch.histc(current.detach().mean(1), bins=bins, min=0, max=1)
+    return bool((0.5 * (a / a.sum() - b / b.sum()).abs().sum() > threshold).item())

@@ -1,10 +1,11 @@
-"""Loss metadata and future single-decorator registration; ARCHITECTURE loss graph.
+"""Loss metadata and single-decorator registration; ARCHITECTURE loss graph.
 
 See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -20,6 +21,7 @@ from nta_zerodce.losses.noise import fidelity_loss, invariance_loss, noise_loss
 from nta_zerodce.losses.smoothness import smoothness_loss
 from nta_zerodce.losses.spatial import spatial_loss
 from nta_zerodce.losses.temporal import temporal_loss
+from nta_zerodce.training.config import FeatureFlags
 
 LossCallable = Callable[..., Tensor]
 
@@ -41,7 +43,7 @@ class LossSpec:
     required_inputs: tuple[str, ...]
 
 
-# Default metadata references stubs; no loss or decorator is executed at import.
+# Default metadata references pure losses; no loss or decorator is executed at import.
 LOSS_REGISTRY: dict[str, LossSpec] = {
     "spa": LossSpec(spatial_loss, None, 1.0, ("image", "enhanced")),
     "exp": LossSpec(exposure_loss, "not adaptive_exp", 10.0, ("enhanced",)),
@@ -113,9 +115,22 @@ def register_loss(
         CONTRIBUTING extension checklist; reject duplicate keys and unknown flags.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Register one loss through a decorator")
+    if name in LOSS_REGISTRY:
+        raise ValueError(f"Duplicate loss: {name}")
+    if flag is not None and flag.removeprefix("not ") not in FeatureFlags.__dataclass_fields__:
+        raise ValueError(f"Unknown flag: {flag}")
+    if not math.isfinite(default_weight) or default_weight < 0:
+        raise ValueError("Loss weight must be finite and nonnegative")
+
+    def decorate(function: LossCallable) -> LossCallable:
+        if name in LOSS_REGISTRY:
+            raise ValueError(f"Duplicate loss: {name}")
+        LOSS_REGISTRY[name] = LossSpec(function, flag, default_weight, required_inputs)
+        return function
+
+    return decorate
 
 
 def build_losses(flags: dict[str, bool], weights: dict[str, float]) -> dict[str, LossSpec]:
@@ -132,6 +147,23 @@ def build_losses(flags: dict[str, bool], weights: dict[str, float]) -> dict[str,
         METHOD total objective; missing runtime tensor inputs must be rejected.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Resolve active loss specifications")
+    if set(flags) != set(FeatureFlags.__dataclass_fields__) or any(
+        type(v) is not bool for v in flags.values()
+    ):
+        raise ValueError("Expected complete boolean feature flags")
+    if flags["denoise"] and not flags["noise_aware"]:
+        raise ValueError("denoise requires noise_aware")
+    if any(not math.isfinite(v) or v < 0 for v in weights.values()):
+        raise ValueError("Invalid loss weight")
+    result = {}
+    for name, spec in LOSS_REGISTRY.items():
+        gate = spec.flag
+        active = gate is None or (not flags[gate[4:]] if gate.startswith("not ") else flags[gate])
+        if active:
+            key = "exp" if name == "adaptive_exp" else name
+            result[name] = LossSpec(
+                spec.callable, gate, weights.get(key, spec.default_weight), spec.required_inputs
+            )
+    return result

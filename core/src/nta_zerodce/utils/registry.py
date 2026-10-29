@@ -20,15 +20,15 @@ class Registry(Generic[T]):
             self: Generic Registry[T].
 
         Returns:
-            No value; future implementation owns a string-to-T mapping.
+            No value; owns a string-to-T mapping.
 
         Method:
             CONTRIBUTING registration convention.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            ValueError: Invalid inputs or incompatible configuration.
         """
-        raise NotImplementedError("TODO: Construct an empty typed registry")
+        self._items: dict[str, T] = {}
 
     def register(self, name: str, value: T) -> None:
         """Register one unique name.
@@ -44,9 +44,11 @@ class Registry(Generic[T]):
             CONTRIBUTING fail-fast duplicate policy.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            ValueError: Invalid inputs or incompatible configuration.
         """
-        raise NotImplementedError("TODO: Register one unique name")
+        if not name or name in self._items:
+            raise ValueError(f"Empty or duplicate registry key: {name}")
+        self._items[name] = value
 
     def get(self, name: str) -> T:
         """Retrieve registered metadata.
@@ -61,6 +63,6 @@ class Registry(Generic[T]):
             CONTRIBUTING explicit lookup.
 
         Raises:
-            NotImplementedError: Scaffold only; implement this contract before use.
+            ValueError: Invalid inputs or incompatible configuration.
         """
-        raise NotImplementedError("TODO: Retrieve registered metadata")
+        return self._items[name]

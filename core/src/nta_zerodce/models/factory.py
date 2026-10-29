@@ -26,6 +26,7 @@ def build_model(config: Config) -> NTAZeroDCE:
         ARCHITECTURE flag matrix and METHOD architecture.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Build a model from validated feature flags")
+    config.validate()
+    return NTAZeroDCE(config)

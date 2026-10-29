@@ -5,7 +5,10 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+import torch.nn.functional as F
 from torch import Tensor
+
+from nta_zerodce.tensor_ops import smoothstep
 
 
 def adaptive_targets(
@@ -35,9 +38,15 @@ def adaptive_targets(
         Extension 4 target formula and smoothstep in METHOD. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Compute detached noise-aware patch exposure targets")
+    yp = F.avg_pool2d(image.mean(1, keepdim=True), patch_size)
+    sp = F.avg_pool2d(sigma.detach(), patch_size)
+    return (
+        target
+        + (yp - target) * smoothstep(yp, low, high)
+        - noise_penalty * (sp / noise_scale).clamp(0, 1)
+    ).detach()
 
 
 def adaptive_exposure_loss(output: Tensor, targets: Tensor, patch_size: int = 16) -> Tensor:
@@ -55,6 +64,8 @@ def adaptive_exposure_loss(output: Tensor, targets: Tensor, patch_size: int = 16
         Extension 4; mean squared pooled luminance error, replaces L_exp. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Match adaptive patch exposure targets")
+    return (
+        (F.avg_pool2d(output.mean(1, keepdim=True), patch_size) - targets.detach()).square().mean()
+    )

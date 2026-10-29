@@ -5,6 +5,9 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
+import torch
 from torch import Tensor
 
 from nta_zerodce.models.nta_zerodce import ModelOutput, NTAZeroDCE
@@ -25,6 +28,15 @@ def enhance_image(model: NTAZeroDCE, image: Tensor, curve_scale: float = 1.0) ->
         REAL_TIME downsample estimator then apply eight curves to original RGB; no resized final RGB.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Enhance RGB using inference-only model execution")
+    if not 0 < curve_scale <= 1:
+        raise ValueError("curve_scale must lie in (0,1]")
+    old_config = model.config
+    model.eval()
+    try:
+        model.config = replace(old_config, model=replace(old_config.model, curve_scale=curve_scale))
+        with torch.no_grad():
+            return model.forward(image)
+    finally:
+        model.config = old_config

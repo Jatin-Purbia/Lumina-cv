@@ -22,6 +22,6 @@ def clipping_fraction(output: Tensor, threshold: float = 0.99) -> Tensor:
         EXPERIMENTS: mean(Y(output)>=threshold); report input clipping alongside output.
 
     Raises:
-        NotImplementedError: Scaffold only; implement this contract before use.
+        ValueError: Invalid inputs or incompatible configuration.
     """
-    raise NotImplementedError("TODO: Measure near-saturated luminance fraction")
+    return (output.mean(1) >= threshold).to(output.dtype).mean((1, 2))
