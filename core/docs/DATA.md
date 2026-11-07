@@ -37,7 +37,7 @@ archives separately; normalize layout explicitly. Baseline train_images recursiv
 indexes image files, never labels/reference composites. Match LOL basenames
 exactly and reject missing/duplicate pairs. Store a private split manifest with
 source hash, scene/session ID, exposure/frame index and acquisition terms.
-Config paths resolve from the core workspace root; data_paths.example.yaml supplies only a paths
+Config paths resolve from the core workspace root; data_paths_example.py supplies only a paths
 section to merge manually into a complete experiment.
 
 ## Leakage and preprocessing
@@ -78,7 +78,7 @@ Never synthesize across evaluation source scenes. scripts/make_synthetic_data.py
 writes noisy images (`clean.png`, `noisy.png`, `meta.json`) or, with `--pairs`, temporal pairs
 (`image1.png`, `image2.png`, `meta.json`) under `<output>/<index>_<name>/`; the sidecar records
 source, seed, noise coefficients and, for pairs, the affine matrix and flicker factor. Without
-`--input` it renders procedural low-light scenes, so no download is needed (`make smoke`).
+`--input` it renders procedural low-light scenes, so no download is needed .
 No generated or real datasets are committed.
 
 ## Build a video set

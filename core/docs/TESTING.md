@@ -6,7 +6,7 @@ run Python training or require datasets/checkpoints.
 
 ## What is verified
 
-`make lint typecheck test docs-check` runs ruff (lint and format), strict mypy over source,
+`python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest` runs ruff (lint and format), strict mypy over source,
 scripts and tests, and the full pytest suite (about 2,060 tests on CPU; CUDA-only tests skip
 without a GPU). No dataset, checkpoint or network access is required: tests build tiny
 synthetic images, videos and checkpoints in temporary directories.
@@ -21,12 +21,11 @@ synthetic images, videos and checkpoints in temporary directories.
 | HTTP API | [api](../tests/test_api.py) |
 | End to end | [e2e](../tests/test_e2e.py): train CLI, checkpoint, enhance CLI and API give identical pixels |
 
-`make smoke` is the same pipeline as a shell recipe (synthetic data, a three-epoch CPU
-training run, enhancement, output check). The web workspace has its own vitest suite
+[e2e](../tests/test_e2e.py) runs the same pipeline (synthetic data, CPU training, enhancement, output check). The web workspace has its own vitest suite
 (`npm test` in web/) covering the API client, error mapping, the proxy route handler and
 the page components; its CI job also runs typecheck, lint, build and `npm audit`.
 
-`make docs-check` collects [config_schema](../tests/test_config_schema.py), whose top-level
+The `pytest` run collects [config_schema](../tests/test_config_schema.py), whose top-level
 assertions verify every local Markdown link in README/docs, that YAML configs carry exactly
 the dataclass keys, the 13-row/three-seed ablation matrix, and that every source function is
 annotated. Link anchors and external URLs are outside the local file check. Directories
@@ -69,10 +68,8 @@ CUDA with float32 and tolerance chosen per operation, not bit equality across de
 ## Check commands and completion
 
 ```sh
-make setup
-make lint typecheck test docs-check
+python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest
 python scripts/enhance.py --help
-make smoke
 ```
 
 Third-party torch imports are treated as opaque by mypy (`follow_imports = skip`) while every

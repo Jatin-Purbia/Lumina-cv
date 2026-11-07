@@ -20,7 +20,7 @@ RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2
       "pillow>=10" "tqdm>=4.66" "pyyaml>=6" \
       "fastapi>=0.115" "uvicorn>=0.30" "python-multipart>=0.0.9"
 
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml README.md ./
 COPY src ./src
 COPY configs ./configs
 RUN pip install --no-deps .

@@ -1,4 +1,1 @@
 * text=auto eol=lf
-*.ipynb text eol=lf
-# Optional local filter: nbstripout --install --attributes .gitattributes
-# CI/pre-commit strips notebook outputs without requiring a Git filter.

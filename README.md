@@ -16,7 +16,6 @@ Lumina-CV/
   web/                      Next.js + React + TypeScript
     app/                     page and the runtime /api/v1 proxy route handler
     components/ hooks/ lib/ tests/
-  .github/workflows/ci.yml  Core (Python 3.10, 3.12), web and Docker-build jobs
 ```
 
 ## Try it end to end
@@ -28,10 +27,13 @@ on procedurally generated images, so the output demonstrates the pipeline, not i
 # 1. Train a tiny model on synthetic data and enhance a few images (CPU, a few minutes)
 cd core
 python -m pip install -e ".[dev]"
-make smoke                               # writes .smoke/checkpoints/smoke/final.pt
+python scripts/make_synthetic_data.py --output .smoke/data/train --count 32 --size 96 --seed 1
+python scripts/make_synthetic_data.py --output .smoke/data/test --count 4 --size 96 --seed 2
+python scripts/train.py --config configs/smoke.py --run-name smoke
+python scripts/enhance.py --checkpoint .smoke/checkpoints/smoke/final.pt --input .smoke/data/test --output .smoke/out --device cpu      # writes .smoke/checkpoints/smoke/final.pt
 
 # 2. Serve the model
-LUMINA_CHECKPOINT=.smoke/checkpoints/smoke/final.pt make serve   # http://127.0.0.1:8000
+LUMINA_CHECKPOINT=.smoke/checkpoints/smoke/final.pt python -m nta_zerodce.api   # http://127.0.0.1:8000
 
 # 3. Open the demo (second terminal)
 cd ../web
@@ -41,13 +43,13 @@ npm run dev                              # http://localhost:3000
 
 The page proxies `/api/v1/*` to the server named by `LUMINA_API_URL` (default
 `http://127.0.0.1:8000`), read at request time. To use a real model, train with
-`core/configs/full.yaml` on your own data (see [core README](core/README.md)) and point
+`core/configs/full.py` on your own data (see [core README](core/README.md)) and point
 `LUMINA_CHECKPOINT` at the resulting `final.pt`.
 
 ## Checks
 
 ```sh
-cd core && make lint typecheck test docs-check
+cd core && python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest
 cd web  && npm run typecheck && npm run lint && npm test && npm run build
 ```
 

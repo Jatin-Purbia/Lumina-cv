@@ -43,41 +43,41 @@ python -m venv .venv
 # POSIX: source .venv/bin/activate
 # PowerShell: .venv/Scripts/Activate.ps1
 python -m pip install -e ".[dev]"
-python -m pre_commit install
-make lint typecheck test docs-check
+python -m ruff check . && python -m ruff format --check .
+python -m mypy
+python -m pytest
 ```
 
-GNU Make is required for make targets. On Windows without Make, run the same
-recipes directly: python -m ruff check ., python -m ruff format --check .,
-python -m mypy, python -m pytest, and python -m pytest --collect-only -q
-tests/test_config_schema.py. make setup installs the editable package and dev
-tools, including nbstripout. No dataset/checkpoint is installed.
+No dataset/checkpoint is installed.
 
 ## Quickstart
 
 Without any dataset (synthetic images, three CPU epochs, then enhancement of the test images):
 
 ```sh
-make smoke
+python scripts/make_synthetic_data.py --output .smoke/data/train --count 32 --size 96 --seed 1
+python scripts/make_synthetic_data.py --output .smoke/data/test --count 4 --size 96 --seed 2
+python scripts/train.py --config configs/smoke.py --run-name smoke
+python scripts/enhance.py --checkpoint .smoke/checkpoints/smoke/final.pt --input .smoke/data/test --output .smoke/out --device cpu
 ```
 
 With real data (see [DATA](docs/DATA.md) for the expected layout):
 
 ```sh
 python scripts/train.py --help
-python scripts/train.py --config configs/baseline.yaml
-python scripts/train.py --config configs/full.yaml --noise --denoise --edge --chroma --adaptive-exp --temporal --video-dir data/videos/train
-python scripts/ablate.py --matrix configs/ablation_matrix.yaml --output runs/ablations
-python scripts/evaluate.py --config configs/full.yaml --checkpoint checkpoints/full.pt --output runs/eval.csv
-python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced --curve-scale 0.5
-python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
-python scripts/make_synthetic_data.py --config configs/full.yaml --input data/SICE/part1 --output data/synthetic
+python scripts/train.py --config configs/baseline.py
+python scripts/train.py --config configs/full.py --noise --denoise --edge --chroma --adaptive-exp --temporal --video-dir data/videos/train
+python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations
+python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/full.pt --output runs/eval.csv
+python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced --curve-scale 0.5
+python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
+python scripts/make_synthetic_data.py --config configs/full.py --input data/SICE/part1 --output data/synthetic
 ```
 
 Serve a checkpoint over HTTP (details, limits and deployment in [API](docs/API.md)):
 
 ```sh
-LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api   # or: make serve
+LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api   
 curl -F file=@dark.png http://127.0.0.1:8000/api/v1/enhance -o enhanced.png
 ```
 
@@ -111,9 +111,9 @@ Plain text status labels deliberately replace coloured badges.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Docs and signatures | PRESENT | [ARCHITECTURE](docs/ARCHITECTURE.md), [METHOD](docs/METHOD.md), [INTERFACES](docs/INTERFACES.md) |
-| Packaging, lint, static types, CLI help | CHECKED | [pyproject](pyproject.toml), [CI](../.github/workflows/ci.yml) |
-| Models, losses, data, flow, metrics, training, inference, API | IMPLEMENTED, TESTED | [tests](tests/), `make test`, `make smoke` |
-| Local doc links, config keys, annotation audit | ACTIVE | [schema tests](tests/test_config_schema.py), make docs-check |
+| Packaging, lint, static types, CLI help | CHECKED | [pyproject](pyproject.toml) |
+| Models, losses, data, flow, metrics, training, inference, API | IMPLEMENTED, TESTED | [tests](tests/), `python -m pytest` |
+| Local doc links, config keys, annotation audit | ACTIVE | [schema tests](tests/test_config_schema.py) |
 | Training on real datasets, ablation results | NOT RUN | needs SICE/LOL data and GPU time ([ROADMAP](docs/ROADMAP.md) M6) |
 | Trained weights, measured metrics, FPS | ABSENT | [EXPERIMENTS](docs/EXPERIMENTS.md), [REAL_TIME](docs/REAL_TIME.md) contain empty templates |
 
@@ -134,9 +134,7 @@ acquisition; [TESTING](docs/TESTING.md) lists what is verified;
 [ROADMAP](docs/ROADMAP.md) defines M0..M6; [CONTRIBUTING](docs/CONTRIBUTING.md)
 defines how to add an extension. [GLOSSARY](docs/GLOSSARY.md) defines terms.
 
-## Licence and citation
+## References
 
-Our original work is [MIT](LICENSE). The Zero-DCE reference is CC BY-NC 4.0 and
-has not been copied; read [NOTICE](NOTICE.md) before importing any code/assets.
-Data licences remain separate. Use [CITATION.cff](CITATION.cff) for this software
-and cite the original paper and applicable datasets from [REFERENCES](docs/REFERENCES.md).
+Cite the original paper and applicable datasets from [REFERENCES](docs/REFERENCES.md). The Zero-DCE
+reference is CC BY-NC 4.0 and has not been copied. Data licences remain separate.

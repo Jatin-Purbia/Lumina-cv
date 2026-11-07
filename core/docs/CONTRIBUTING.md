@@ -6,10 +6,9 @@ RGB float32 BCHW is canonical; conversion occurs only at IO. Ruff formats at 100
 columns and enforces imports/annotations; mypy strict checks all source/CLIs/tests.
 Pure tensor losses cannot move devices or read configuration files. Respect the
 dependency rules in [ARCHITECTURE](ARCHITECTURE.md). Do not copy the reference code;
-licensing/provenance requirements are in [NOTICE](../NOTICE.md).
 
-Every callable is implemented and tested. Run `make lint typecheck test docs-check` before
-sending a change; `make smoke` exercises train and enhance end to end. New behaviour needs a
+Every callable is implemented and tested. Run `python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest` before
+sending a change; `pytest tests/test_e2e.py` exercises train and enhance end to end. New behaviour needs a
 test in the same change, and documentation status tables must be updated with it.
 
 ## Commit convention
@@ -18,7 +17,7 @@ Conventional Commits: feat:, fix:, docs:, test:, refactor:, chore:. Optional sco
 such as feat(noise): or docs(method):. Initial commit is exactly
 chore: initial scaffold. Work on main unless the maintainer asks for a branch.
 Do not commit data, runs, checkpoints, personal footage or notebook outputs.
-Run pre-commit and make lint typecheck test docs-check before proposing a change.
+Run python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest before proposing a change.
 
 ## Add one loss or extension
 
