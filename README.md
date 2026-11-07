@@ -42,25 +42,15 @@ source .venv/bin/activate        # Git Bash on Windows: source .venv/Scripts/act
 python -m pip install -e ".[dev]"
 ```
 
-**Step 4. Start the server** (every time, with the venv activated)
-
-Set the path to a trained checkpoint and start the server. It listens on
-http://127.0.0.1:8000 and keeps running until you press Ctrl+C.
+**Step 4. Start the server**
 
 ```powershell
-# Windows PowerShell
-$env:LUMINA_CHECKPOINT = "path\to\final.pt"
+$env:LUMINA_CHECKPOINT = "path	oinal.pt"
 python -m nta_zerodce.api
 ```
 
-```sh
-# macOS / Linux / Git Bash
-LUMINA_CHECKPOINT=path/to/final.pt python -m nta_zerodce.api
-```
-
-Check it is up: open http://127.0.0.1:8000/api/v1/health (`"model_loaded": true` means the
-checkpoint loaded). Without `LUMINA_CHECKPOINT` the server still starts, but image enhancement
-answers 503.
+On macOS/Linux use `export LUMINA_CHECKPOINT=path/to/final.pt` instead of the first line.
+The API runs at http://127.0.0.1:8000 (stop with Ctrl+C).
 
 ### 2. Web app
 
