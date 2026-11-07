@@ -45,7 +45,7 @@ python -m pip install -e ".[dev]"
 **Step 4. Start the server**
 
 ```powershell
-$env:LUMINA_CHECKPOINT = "C:\Desktop\Lumina-CV\core\checkpointsullinal.pt"
+$env:LUMINA_CHECKPOINT = "C:/Desktop/Lumina-CV/core/checkpoints/full/final.pt"
 python -m nta_zerodce.api
 ```
 
