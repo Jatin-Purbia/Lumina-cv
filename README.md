@@ -42,17 +42,19 @@ it is not stored in git. Running the script again does nothing if the data is al
 ## 3. Train the model (once)
 
 ```powershell
-python scripts/train.py --config configs/full.py --no-temporal --device cpu --epochs 60 --run-name lol
+python scripts/train.py --config configs/full.py --no-temporal --device cpu --epochs 10 --run-name lol
 ```
 
-- Takes roughly an hour or more on a CPU (about 1.5 minutes per epoch on the machine this was
-  developed on). With a GPU use `--device cuda` and more epochs (the config default is 100).
+- Takes about 20 to 30 minutes on a CPU. Use `--device cuda` if you have a GPU.
+- **Keep `--epochs` small (10).** On this data, longer training makes the model brighten
+  everything too much: by epoch 15 ordinary photos start to show blown-out white patches, and by
+  epoch 25 they wash out completely. Ten epochs gives natural, moderate enhancement. It
+  under-brightens the very darkest scenes (the LOL test set) rather than ruining normal photos.
 - `--no-temporal` skips the video-consistency part, which the photo app does not use and which
   doubles the training time. Drop it to train the full model.
-- Output: `core/checkpoints/lol/final.pt` (plus `epoch_XXXX.pt` every 5 epochs), and logs in
-  `core/runs/lol/` (`metrics.csv`, `val_metrics.csv`). Resume with
-  `--resume checkpoints/lol/epoch_0030.pt`.
-- Other options: `python scripts/train.py --help`. Configs are Python files in `core/configs/`.
+- Output: `core/checkpoints/lol/final.pt`, plus logs in `core/runs/lol/` (`metrics.csv`,
+  `val_metrics.csv`). Other options: `python scripts/train.py --help`. Configs are Python files in
+  `core/configs/`.
 
 ## 4. Start the API server
 

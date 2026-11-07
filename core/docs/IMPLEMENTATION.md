@@ -69,6 +69,13 @@ the installed SciPy/OpenCV.
 
 ## Limits
 
+- **Train briefly.** On LOL (`configs/full.py`, no temporal, CPU) the model over-brightens as
+  training continues: held-out LOL PSNR rises (10.7 at epoch 10, 13.5 at 15, 16.6 at 40) but a
+  moderately dark photo is blown out from epoch 15 and washed out by 25. The shipped recipe uses 10
+  epochs. A more varied training set (adding normal-light and darkened copies) did not fix it.
+  Fixing this properly needs loss/weight tuning (for example a lower exposure target) or a
+  validation set of ordinary photos for early stopping; neither has been done.
+
 - No trained weights, benchmark results or ablation results are included. No quality or
   real-time claim is made; the 30 fps / 720p budget (capture 3 ms, resize 2, estimation 10,
   DIS 8, warp and curves 4, denoise 3, output 3) is a design target to be measured.
