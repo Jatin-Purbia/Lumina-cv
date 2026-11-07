@@ -51,7 +51,7 @@ false. Resolve/revalidate before construction. --webcam and --input conflict;
 enhancement/evaluation need checkpoints at runtime; --help has no data dependency.
 train --resume restores compatible optimizer/RNG; ablate --matrix expands base
 config/seed/flag rows; evaluate --output writes CSV; make_synthetic_data --output
-writes local private samples. Commands now execute these contracts; research validation remains pending.
+writes local private samples. All five scripts are implemented; see [Implemented CLI behaviour](#implemented-cli-behaviour).
 
 Checkpoint format v1 contains model state, optional optimizer, completed epoch,
 resolved config/flags, schema_version, RNG states and provenance (git/environment
@@ -62,7 +62,9 @@ fine-tune path must document compatible architecture and changed objective.
 
 ## Schema bounds and units
 
-Records below are dataclasses. Validation, YAML load/save and registry execution are implemented. Constructing Config alone does not validate it. YAML baseline/full includes every record field; paths example and
+Records below are dataclasses; generated constructors store fields, but validate,
+Config load/save/override helpers are implemented in training/config.py. Never interpret constructing Config
+as validated. YAML baseline/full includes every record field; paths example and
 ablation matrix have specialized schemas described after the table.
 
 | Section | Units and validation |
@@ -243,8 +245,8 @@ VideoState stores optional previous_image, previous_A, previous_output; None mea
 reset, B=1 only, detached tensors on model device. LossSpec is immutable with
 callable (tensor loss), flag (name, not-flag expression or None), default_weight (nonnegative float),
 required_inputs (ordered context names). LOSS_REGISTRY is keyed by name and
-stores twelve default LossSpec records referencing pure tensor losses; no loss executes
-at import. Dynamic registration rejects duplicates and unknown gates.
+stores twelve default LossSpec records referencing pure loss functions; no loss executes
+at import. Dynamic registration is implemented in utils/registry.py.
 LOSS_CONTRACTS provides the complete declarative planned names/gates/weights/inputs.
 Registry[T] provides unique typed lookup; Config and its nested records are typed
 metadata; model and orchestration perform computation. For every executable class, constructor/forward and
@@ -255,7 +257,9 @@ without eager imports or registry/model side effects.
 
 The following inventory gives the exact pre-format signature and detailed contract
 for each source API. Source formatter may wrap lines without changing signatures.
-Implementations preserve these signatures; see source for validation and execution details.
+All are implemented and tested; signatures below were written at M0, so where source and this
+inventory differ the source and its docstrings win (additions are listed in
+[Implemented additions](#implemented-additions)).
 
 ### models/dce_net
 
@@ -263,7 +267,7 @@ Source: [models/dce_net.py](../src/nta_zerodce/models/dce_net.py)
 
 Class `DCENet`: Estimate eight RGB curve maps using seven symmetric skip convolutions.
 
-Constructor and forward contracts are below; methods implement the contracts below.
+Constructor and forward contracts are below.
 
 ```python
 def DCENet.__init__(self, in_channels: int=3, channels: int=32, iterations: int=8) -> None:
@@ -283,8 +287,6 @@ Returns:
 Method:
     METHOD baseline architecture; 3x3 stride 1, symmetric concatenations, tanh head.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -303,13 +305,11 @@ Returns:
 Method:
     METHOD baseline network, with identical skips for the light variant.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 Class `LightDCENet`: Estimate curves with a project depthwise-separable variant; not a Zero-DCE++ reproduction.
 
-Constructor and forward contracts are below; methods implement the contracts below.
+Constructor and forward contracts are below.
 
 ```python
 def LightDCENet.__init__(self, in_channels: int=3, channels: int=32, iterations: int=8) -> None:
@@ -329,8 +329,6 @@ Returns:
 Method:
     METHOD baseline architecture; 3x3 stride 1, symmetric concatenations, tanh head.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -349,8 +347,6 @@ Returns:
 Method:
     METHOD baseline network, with identical skips for the light variant.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -371,8 +367,6 @@ Returns:
 Method:
     Zero-DCE [R1], METHOD baseline: x_next = x + A*x*(1-x).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/noise_branch
@@ -398,8 +392,6 @@ Returns:
 Method:
     METHOD extension 1: bounded sigmoid sigma; synthetic target sqrt(a*meanRGB(x)+b^2).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -418,8 +410,6 @@ Returns:
 Method:
     METHOD extension 1: bounded sigmoid sigma; synthetic target sqrt(a*meanRGB(x)+b^2).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/denoiser
@@ -445,8 +435,6 @@ Returns:
 Method:
     METHOD extension 1: clamp(z - residual_scale*tanh(head([z,sigma*gain])),0,1).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -467,8 +455,6 @@ Returns:
 Method:
     METHOD extension 1: clamp(z - residual_scale*tanh(head([z,sigma*gain])),0,1).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/nta_zerodce
@@ -501,8 +487,6 @@ Returns:
 Method:
     ARCHITECTURE composition; flags gate construction.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -522,8 +506,6 @@ Returns:
 Method:
     METHOD composition and temporal inference; override bypasses curve estimation only.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### models/factory
@@ -546,8 +528,6 @@ Returns:
 Method:
     ARCHITECTURE flag matrix and METHOD architecture.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/spatial
@@ -572,8 +552,6 @@ Returns:
 Method:
     Baseline L_spa; valid four-neighbour region pairs, squared absolute differences. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/exposure
@@ -598,8 +576,6 @@ Returns:
 Method:
     Baseline L_exp; reference-profile squared error; paper absolute variant documented. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/color
@@ -622,8 +598,6 @@ Returns:
 Method:
     Baseline L_col = mean_batch sqrt(d_RG^4+d_RB^4+d_GB^4). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/smoothness
@@ -646,8 +620,6 @@ Returns:
 Method:
     Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)). See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/adaptive_exposure
@@ -675,8 +647,6 @@ Returns:
 Method:
     Extension 4 target formula and smoothstep in METHOD. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -697,8 +667,6 @@ Returns:
 Method:
     Extension 4; mean squared pooled luminance error, replaces L_exp. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/highlight
@@ -723,8 +691,6 @@ Returns:
 Method:
     Extension 4; masked positive luminance increase squared; empty mask returns graph-connected zero. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/chroma
@@ -753,8 +719,6 @@ Returns:
 Method:
     Extension 3; masked L1 distance of RGB/sum to detached local input chromaticity. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/edge
@@ -784,8 +748,6 @@ Returns:
 Method:
     Extension 2; normalized Sobel magnitude of output against gain*smoothed input gradient. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/noise
@@ -809,8 +771,6 @@ Returns:
 Method:
     Extension 1; mean absolute standard-deviation error. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -830,8 +790,6 @@ Returns:
 Method:
     Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -851,8 +809,6 @@ Returns:
 Method:
     Extension 1; L1 synthetic fidelity; requires denoise, uses no real high-light GT. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/temporal
@@ -877,8 +833,6 @@ Returns:
 Method:
     Extension 5; masked L1 current vs warp(previous,backward_flow); no detach on outputs. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### losses/registry
@@ -912,8 +866,6 @@ Returns:
 Method:
     CONTRIBUTING extension checklist; reject duplicate keys and unknown flags.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -933,8 +885,6 @@ Returns:
 Method:
     METHOD total objective; missing runtime tensor inputs must be rejected.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/config
@@ -1154,8 +1104,6 @@ Returns:
 Method:
     INTERFACES validation checklist; denoise implies noise_aware; temporal pair source must be valid.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1175,8 +1123,6 @@ Returns:
 Method:
     INTERFACES precedence defaults < YAML < explicit CLI; reject unknown keys.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1196,8 +1142,6 @@ Returns:
 Method:
     INTERFACES round-trip/checkpoint contract; no implicit path rewriting.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/noise_synth
@@ -1222,8 +1166,6 @@ Returns:
 Method:
     METHOD extension 1: n=sqrt(a*x+b^2)*epsilon; sigma_target=sqrt(a*meanRGB(x)+b^2).
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/image_dataset
@@ -1250,8 +1192,6 @@ Returns:
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1270,8 +1210,6 @@ Returns:
 Method:
     DATA deterministic index, no sampling during length queries.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1290,8 +1228,6 @@ Returns:
 Method:
     INTERFACES dataset batch keys; RGB [0,1] CPU, shared pair geometry.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/video_pairs
@@ -1319,8 +1255,6 @@ Returns:
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1339,8 +1273,6 @@ Returns:
 Method:
     DATA deterministic index, no sampling during length queries.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1359,8 +1291,6 @@ Returns:
 Method:
     INTERFACES dataset batch keys; RGB [0,1] CPU, shared pair geometry.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/synthetic_pairs
@@ -1385,8 +1315,6 @@ Returns:
 Method:
     METHOD extension 5: affine inverse coordinate maps, exposure flicker and independent noise; DATA generation.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### data/transforms
@@ -1409,8 +1337,6 @@ Returns:
 Method:
     INTERFACES IO range contract; no gamma or white-balance correction.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1431,8 +1357,6 @@ Returns:
 Method:
     DATA shared geometry; crop before computing flow, or transform cached flow consistently.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/estimator
@@ -1456,8 +1380,6 @@ Returns:
 Method:
     INTERFACES: first(p) ~ second(p+flow(p)); DIS [R6]. Resize vectors by full/small dimensions.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1477,8 +1399,6 @@ Returns:
 Method:
     METHOD extension 5; compute both independently, never negate forward flow.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/warp
@@ -1503,8 +1423,6 @@ Returns:
 Method:
     INTERFACES: warp(b,f(a,b))(p)=b(p+f(p)); METHOD normalized grid formula.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### flow/masks
@@ -1531,8 +1449,6 @@ Returns:
 Method:
     METHOD extension 5; compare backward + warp(forward,backward), in current coordinates.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1553,8 +1469,6 @@ Returns:
 Method:
     METHOD extension 5; conservative project heuristic, not a learned cut detector.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/enhancer
@@ -1579,8 +1493,6 @@ Returns:
 Method:
     REAL_TIME downsample estimator then apply eight curves to original RGB; no resized final RGB.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/video_enhancer
@@ -1613,8 +1525,6 @@ Returns:
 Method:
     ARCHITECTURE inference graph; temporal flag false is frame-independent.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1633,8 +1543,6 @@ Returns:
 Method:
     METHOD scene cut handling; resolution changes also force reset.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1653,8 +1561,6 @@ Returns:
 Method:
     METHOD backward current->previous flow, mask-aware convex A blend and optional output blend.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/webcam
@@ -1679,8 +1585,6 @@ Returns:
 Method:
     REAL_TIME budget/profiling; sequential VideoEnhancer state and RGB/BGR boundary.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### inference/io
@@ -1703,8 +1607,6 @@ Returns:
 Method:
     INTERFACES IO; ignore EXIF orientation only if documented; planned policy applies orientation.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1724,8 +1626,6 @@ Returns:
 Method:
     INTERFACES IO; round(255*x), PNG preferred for evaluation.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1744,8 +1644,6 @@ Returns:
 Method:
     DATA video protocol; preserve original timestamps in downstream metadata.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1766,8 +1664,6 @@ Returns:
 Method:
     INTERFACES IO; timing and video-metric quantization caveats.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/fidelity
@@ -1791,8 +1687,6 @@ Returns:
 Method:
     EXPERIMENTS: 10*log10(1/MSE); higher is better.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -1812,8 +1706,6 @@ Returns:
 Method:
     EXPERIMENTS: Gaussian 11x11 sigma=1.5, K1=.01 K2=.03, data_range=1; [R10].
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/noise
@@ -1837,8 +1729,6 @@ Returns:
 Method:
     EXPERIMENTS: Immerkaer kernel and calibration [R8]; texture causes bias.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/colour
@@ -1863,8 +1753,6 @@ Returns:
 Method:
     EXPERIMENTS acos(clamp(dot/(norms),-1,1)); not perceptual Delta-E.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/exposure
@@ -1888,8 +1776,6 @@ Returns:
 Method:
     EXPERIMENTS: mean(Y(output)>=threshold); report input clipping alongside output.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### metrics/temporal
@@ -1914,8 +1800,6 @@ Returns:
 Method:
     EXPERIMENTS temporal metric; also report mask coverage to expose flow rejection.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/trainer
@@ -1939,8 +1823,6 @@ Returns:
 Method:
     EXPERIMENTS 100 epochs, Adam, fixed seeds; loop_step owns updates.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/loop_step
@@ -1966,8 +1848,6 @@ Returns:
 Method:
     METHOD objective; teacher/masks/gain/targets detached, all active student paths differentiable.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/checkpoint
@@ -1993,8 +1873,6 @@ Returns:
 Method:
     TESTING flag/config round-trip; atomic write and explicit checkpoint format version 1.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2016,8 +1894,6 @@ Returns:
 Method:
     INTERFACES checkpoints; portable CPU map_location then explicit caller transfer.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### training/logging
@@ -2042,8 +1918,6 @@ Returns:
 Method:
     EXPERIMENTS reporting; do not silently mix train/eval columns.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/seed
@@ -2067,8 +1941,6 @@ Returns:
 Method:
     EXPERIMENTS [17,29,43]; determinism does not guarantee identical cross-device results.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/device
@@ -2091,8 +1963,6 @@ Returns:
 Method:
     INTERFACES device rules; OpenCV flow remains CPU then caller transfers.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### utils/registry
@@ -2117,8 +1987,6 @@ Returns:
 Method:
     CONTRIBUTING registration convention.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2138,8 +2006,6 @@ Returns:
 Method:
     CONTRIBUTING fail-fast duplicate policy.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ```python
@@ -2158,8 +2024,6 @@ Returns:
 Method:
     CONTRIBUTING explicit lookup.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ## Script run boundaries
@@ -2179,13 +2043,11 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; delegates to the documented local core workflow.
+    None; delegation described below.
 
 Method:
     INTERFACES CLI: load_config -> trainer.train; --video-dir overrides paths.video_dir.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/evaluate.py
@@ -2203,13 +2065,11 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; delegates to the documented local core workflow.
+    None; delegation described below.
 
 Method:
     INTERFACES CLI: load_config/build_model/load_checkpoint -> paired/unpaired/video metrics -> CSV.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/ablate.py
@@ -2227,13 +2087,11 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; delegates to the documented local core workflow.
+    None; delegation described below.
 
 Method:
     INTERFACES CLI: matrix inheritance -> seed/flag overrides -> trainer.train and evaluate.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/enhance.py
@@ -2251,13 +2109,11 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; delegates to the documented local core workflow.
+    None; delegation described below.
 
 Method:
     INTERFACES CLI: load_config/build_model/load_checkpoint -> image IO, VideoEnhancer or run_webcam.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 ### scripts/make_synthetic_data.py
@@ -2275,15 +2131,50 @@ Args:
     args: Parsed CLI namespace; explicit overrides use None when absent.
 
 Returns:
-    None; delegates to the documented local core workflow.
+    None; delegation described below.
 
 Method:
     INTERFACES CLI: load_config -> dataset index -> make_pair/sample_noise -> local generated output.
 
-Raises:
-    ValueError: Invalid inputs or incompatible configuration.
 ```
 
 Additional schema bounds: model.gain_window is positive odd; temporal.histogram_bins
 is an integer >=2; training.adam_beta1/adam_beta2 lie in [0,1), adam_eps>0.
 These constants are explicit in both complete YAMLs and are untuned defaults.
+
+## Implemented additions
+
+APIs added during implementation (M1-M5) that the M0 inventory above does not list.
+
+| Area | API | Contract |
+| --- | --- | --- |
+| models | `NTAZeroDCE.estimate_maps(image) -> (A, sigma)` | Curve maps and noise map at the input resolution; no curve applied. |
+| models | `NTAZeroDCE.apply_maps(image, A, sigma) -> ModelOutput` | Applies given (possibly resized) maps; `forward` is `apply_maps(*estimate_maps(x))`. |
+| models | `compute_gain(...)` | Adaptive-exposure gain used for highlight protection (`gain_window`, `gain_min`, `gain_max`). |
+| inference | `estimate_full_res_maps(model, image, curve_scale)` | Estimates at `curve_scale`, bilinearly upsamples A and sigma, no gradients. |
+| inference | `enhance_image(model, image, curve_scale)` | Full-resolution `ModelOutput`; equals `forward` at `curve_scale == 1`. |
+| inference | `load_inference_model(checkpoint, config_path=None, overrides=None, device="auto")` | `(model, config, device)`; the checkpoint's stored config is the default. |
+| inference | `VideoEnhancer` diagnostics | Per-frame scene-cut, flow-reliability and blend statistics for temporal curve smoothing. |
+| inference | `run_webcam(...)` | Capture/enhance/display loop with FPS and latency overlay; camera and window are injectable for tests. |
+| training | `save_checkpoint(path, model, optimizer, config, epoch, *, provenance=None)` | Atomic write, format v1, RNG state captured for exact resume. |
+| training | `read_checkpoint`, `checkpoint_config`, `load_checkpoint_full -> LoadedCheckpoint`, `load_checkpoint` | Loads with `weights_only=True`; `LoadedCheckpoint(config, epoch, provenance)`. |
+| training | `config_to_dict`, `config_from_dict`, `override_config` | Plain-dict round trip and dotted-key overrides with full re-validation. |
+| training | `prepare_batch` | Builds the loss context (images, pair fields, flow, masks) from a dataset batch. |
+| cli | `nta_zerodce.cli` | Shared flag/override parsing and `main_guard` exit codes: 2 usage, 1 runtime, 130 interrupt. |
+| api | `nta_zerodce.api.create_app(Settings)` | FastAPI app; see [API](API.md). |
+
+## Implemented CLI behaviour
+
+- `scripts/train.py`: writes `runs/<run>/` (config snapshot, per-epoch CSV logs) and
+  `checkpoints/<run>/epoch_NNNN.pt` plus `final.pt`; `--resume` is bit-exact for model,
+  optimizer and RNG; `--epochs` shortens smoke runs.
+- `scripts/evaluate.py`: CSV with the `EVAL_COLUMNS` of `training/evaluation.py`, one row
+  per image plus an aggregate row; temporal metrics need held-out videos.
+- `scripts/ablate.py`: expands the three-seed matrix, trains and evaluates each row, and
+  writes a combined CSV; rows are resumable.
+- `scripts/enhance.py`: image, folder (layout preserved), video (temporal smoothing when
+  `flags.temporal`; audio is not copied) or `--webcam`; output is PNG.
+- `scripts/make_synthetic_data.py`: procedural or source-based noisy images, or `--pairs`
+  synthetic temporal pairs, each with a JSON sidecar; deterministic for a seed and refuses to
+  overwrite without `--overwrite`.
+- `python -m nta_zerodce.api`: HTTP server configured through `LUMINA_*` variables.

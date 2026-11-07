@@ -1,11 +1,12 @@
 # nta-zerodce
 
-Noise- and Temporal-Aware Zero-DCE: a research implementation for low-light photos,
-hostel-room videos, classroom recordings, and webcam enhancement.
+Noise- and Temporal-Aware Zero-DCE: low-light enhancement for photos, hostel-room
+videos, classroom recordings, and webcam streams, with training code, inference CLIs
+and an HTTP API.
 
 This is the independent Python CV/backend workspace in [Lumina CV](../README.md).
-The empty Next.js demo shell lives in [web](../web/README.md). Package name and
-research interfaces remain nta_zerodce; the repository folder is now core/.
+The Next.js demo lives in [web](../web/README.md). The Python package is nta_zerodce;
+the repository folder is core/.
 
 ## Thirty-second pitch
 
@@ -13,7 +14,9 @@ Estimate per-pixel curves instead of a high-light reference image, following
 [Zero-DCE](docs/REFERENCES.md#r1). Add five switchable project extensions to
 study noise amplification, edge/colour distortion, bright-source overexposure,
 and video flicker. Estimate curves on a smaller frame for the eventual webcam
-demo. The documented model, loss, flow, data, training and inference contracts are implemented. CPU numerical tests and a generated-data training/checkpoint/enhancement/evaluation cycle are executable. Research validation remains pending; see [implementation status](docs/IMPLEMENTATION.md).
+demo. Everything described here is implemented and tested on CPU with synthetic data.
+No model has been trained on real datasets in this repository, so no quality, speed or
+robustness claim is made (see Honest limitations).
 
 ## Features
 
@@ -31,8 +34,8 @@ sigma is then zero. The --light variant changes convolution type, while
 
 ## Install
 
-Python 3.10+; CPU is sufficient for tests and small smoke runs. On Colab/Kaggle, retain the
-platform's compatible torch build; select CUDA explicitly for training on a compatible installation.
+Python 3.10+; CPU is sufficient for all checks and the smoke run. On Colab/Kaggle, retain
+the platform's compatible torch build; use `--device cuda` for real training.
 
 ```sh
 cd core
@@ -50,9 +53,15 @@ python -m mypy, python -m pytest, and python -m pytest --collect-only -q
 tests/test_config_schema.py. make setup installs the editable package and dev
 tools, including nbstripout. No dataset/checkpoint is installed.
 
-## Quickstart contracts
+## Quickstart
 
-All five commands execute. Training requires curated local images; enhancement and evaluation require a compatible trusted local checkpoint. Missing data and incompatible settings fail with explicit errors. Training writes checkpoints/last.pt by default; use separate run/checkpoint directories for each experiment. A nonempty metrics log requires --resume or a new run directory.
+Without any dataset (synthetic images, three CPU epochs, then enhancement of the test images):
+
+```sh
+make smoke
+```
+
+With real data (see [DATA](docs/DATA.md) for the expected layout):
 
 ```sh
 python scripts/train.py --help
@@ -63,6 +72,13 @@ python scripts/evaluate.py --config configs/full.yaml --checkpoint checkpoints/l
 python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/last.pt --input data/unpaired --output runs/enhanced --curve-scale 0.5
 python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/last.pt --webcam 0 --light --curve-scale 0.5
 python scripts/make_synthetic_data.py --config configs/full.yaml --input data/SICE/part1 --output data/synthetic
+```
+
+Serve a checkpoint over HTTP (details, limits and deployment in [API](docs/API.md)):
+
+```sh
+LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api   # or: make serve
+curl -F file=@dark.png http://127.0.0.1:8000/api/v1/enhance -o enhanced.png
 ```
 
 Use --no-noise / --no-edge etc. for explicit false overrides. Absent flags preserve
@@ -80,13 +96,14 @@ sets only the directory. See [INTERFACES](docs/INTERFACES.md) for precedence.
 | [losses](src/nta_zerodce/losses/) | Pure tensor objectives and registry contracts |
 | [data](src/nta_zerodce/data/) | Datasets, affine/noise synthesis, preprocessing |
 | [flow](src/nta_zerodce/flow/) | DIS estimation, differentiable warp, reliability masks |
-| [inference](src/nta_zerodce/inference/) | Image/video/webcam contracts and IO |
+| [inference](src/nta_zerodce/inference/) | Image/video/webcam enhancement and IO |
+| [api](src/nta_zerodce/api/) | FastAPI server ([API](docs/API.md)) |
 | [metrics](src/nta_zerodce/metrics/) | Fidelity, noise, colour, clipping and temporal metrics |
 | [training](src/nta_zerodce/training/) | Schema, gated loop, checkpoint and CSV contracts |
 | [utils](src/nta_zerodce/utils/) | Seed/device/registry contracts |
-| [scripts](scripts/) | Executable train/enhance/evaluate/ablation/synthetic commands |
-| [tests](tests/) | Structural audits and executable numerical/workflow checks |
-| [notebook](notebooks/colab_quickstart.ipynb) | Colab command outline, no execution/output |
+| [scripts](scripts/) | Train, ablate, evaluate, enhance and synthetic-data CLIs |
+| [tests](tests/) | Unit, integration and end-to-end tests ([TESTING](docs/TESTING.md)) |
+| [notebook](notebooks/colab_quickstart.ipynb) | Colab outline, no execution/output |
 | [report](report/outline.md) | Final report outline tied to docs/figures/tables |
 
 ## Status badges table
@@ -96,10 +113,10 @@ Plain text status labels deliberately replace coloured badges.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Docs and signatures | PRESENT | [ARCHITECTURE](docs/ARCHITECTURE.md), [METHOD](docs/METHOD.md), [INTERFACES](docs/INTERFACES.md) |
-| Packaging, lint, static types, CLI help | CHECKABLE | [pyproject](pyproject.toml), [CI](../.github/workflows/ci.yml) |
-| Local doc links, complete config keys | ACTIVE | [schema tests](tests/test_config_schema.py), make docs-check |
-| Config validation / registry / checkpoint IO | IMPLEMENTED | Typed validation, strict state compatibility, RNG and manifest hashes |
-| Model/loss/data/flow/inference/metric/training behavior | IMPLEMENTED | [numerical and workflow tests](tests/test_runtime.py), [TESTING](docs/TESTING.md) |
+| Packaging, lint, static types, CLI help | CHECKED | [pyproject](pyproject.toml), [CI](../.github/workflows/ci.yml) |
+| Models, losses, data, flow, metrics, training, inference, API | IMPLEMENTED, TESTED | [tests](tests/), `make test`, `make smoke` |
+| Local doc links, config keys, annotation audit | ACTIVE | [schema tests](tests/test_config_schema.py), make docs-check |
+| Training on real datasets, ablation results | NOT RUN | needs SICE/LOL data and GPU time ([ROADMAP](docs/ROADMAP.md) M6) |
 | Trained weights, measured metrics, FPS | ABSENT | [EXPERIMENTS](docs/EXPERIMENTS.md), [REAL_TIME](docs/REAL_TIME.md) contain empty templates |
 
 ## Honest limitations
@@ -115,7 +132,7 @@ been established. See [EXPERIMENTS](docs/EXPERIMENTS.md) for controls and threat
 ## Reading and contribution
 
 [DATA](docs/DATA.md) and [download guide](scripts/download_data.md) define manual
-acquisition; [TESTING](docs/TESTING.md) lists future assertions;
+acquisition; [TESTING](docs/TESTING.md) lists what is verified;
 [ROADMAP](docs/ROADMAP.md) defines M0..M6; [CONTRIBUTING](docs/CONTRIBUTING.md)
 defines how to add an extension. [GLOSSARY](docs/GLOSSARY.md) defines terms.
 
@@ -123,7 +140,7 @@ defines how to add an extension. [GLOSSARY](docs/GLOSSARY.md) defines terms.
 
 Our original work is [MIT](LICENSE). The Zero-DCE reference is CC BY-NC 4.0 and
 has not been copied; read [NOTICE](NOTICE.md) before importing any code/assets.
-Data licences remain separate. Use [CITATION.cff](CITATION.cff) for this project
+Data licences remain separate. Use [CITATION.cff](CITATION.cff) for this software
 and cite the original paper and applicable datasets from [REFERENCES](docs/REFERENCES.md).
 
 ## Runtime details

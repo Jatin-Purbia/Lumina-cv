@@ -20,13 +20,14 @@ def build_model(config: Config) -> NTAZeroDCE:
         config: Validated Config; light changes convolution type, noise changes input channels.
 
     Returns:
-        Uninitialized-for-training NTAZeroDCE; caller chooses device.
+        Uninitialized-for-training NTAZeroDCE (default PyTorch initialization, float32, CPU);
+        the caller chooses the device.
 
     Method:
-        ARCHITECTURE flag matrix and METHOD architecture.
+        ARCHITECTURE flag matrix and METHOD architecture. Only the invariants the model itself
+        needs are checked (denoise requires noise_aware); schema validation is the caller's job.
 
     Raises:
-        ValueError: Invalid inputs or incompatible configuration.
+        ValueError: If denoise is enabled without noise_aware.
     """
-    config.validate()
     return NTAZeroDCE(config)

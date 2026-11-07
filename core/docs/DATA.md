@@ -74,7 +74,12 @@ exposure flicker .9..1.1 and independent noise to both frames. Use shared crop
 geometry; recompute affine coordinates after crop. Mask invalid borders, do not
 use the real-pair photometric gate on intended synthetic flicker. Save the source
 ID, seed, affine matrix, a/b coefficients and flicker factor with generated data.
-Never synthesize across evaluation source scenes. make_synthetic_data writes previews, unquantized tensor pairs, analytic geometry, sampled coefficients and source/config metadata. No research dataset is bundled.
+Never synthesize across evaluation source scenes. scripts/make_synthetic_data.py
+writes noisy images (`clean.png`, `noisy.png`, `meta.json`) or, with `--pairs`, temporal pairs
+(`image1.png`, `image2.png`, `meta.json`) under `<output>/<index>_<name>/`; the sidecar records
+source, seed, noise coefficients and, for pairs, the affine matrix and flicker factor. Without
+`--input` it renders procedural low-light scenes, so no download is needed (`make smoke`).
+No generated or real datasets are committed.
 
 ## Build a video set
 

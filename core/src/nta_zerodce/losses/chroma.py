@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from torch import Tensor
 
-from nta_zerodce.tensor_ops import local_mean, masked_mean, smoothstep
+from nta_zerodce.losses._ops import avg_pool_reflect, luminance, masked_mean, smoothstep
 
 
 def chroma_loss(
@@ -15,7 +15,7 @@ def chroma_loss(
     output: Tensor,
     sigma: Tensor,
     window: int = 5,
-    eps: float = 1e-6,
+    eps: float = 1e-06,
     reliability_low: float = 0.05,
     reliability_high: float = 0.2,
     reliability_noise: float = 2.0,
@@ -35,16 +35,26 @@ def chroma_loss(
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 3; masked L1 distance of RGB/sum to detached local input chromaticity. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 3; c(v)=v/(sum_RGB(v)+eps). The reference chromaticity is the stride-1,
+        reflection-padded window average of c(x), taken after normalization and detached; the
+        weights are smoothstep(low,high,Y(x)-noise*sigma), also detached. Loss is
+        masked_mean_3(|c(o)-c_ref|, w) and is exactly zero (graph-connected) with no reliable
+        pixels. See docs/METHOD.md; extensions are project proposals.
 
     Raises:
-        ValueError: Invalid inputs or incompatible configuration.
+        ValueError: If image and output shapes differ or sigma does not match their spatial size.
     """
-    reference = local_mean(image / (image.sum(1, keepdim=True) + eps), window).detach()
-    chroma = output / (output.sum(1, keepdim=True) + eps)
-    mask = smoothstep(
-        image.mean(1, keepdim=True) - reliability_noise * sigma.detach(),
+    if image.shape != output.shape:
+        raise ValueError(f"image {tuple(image.shape)} and output {tuple(output.shape)} differ")
+    if sigma.shape[0] != image.shape[0] or sigma.shape[-2:] != image.shape[-2:]:
+        raise ValueError(f"sigma {tuple(sigma.shape)} does not match image {tuple(image.shape)}")
+    x = image.detach()
+    c_in = x / (x.sum(dim=1, keepdim=True) + eps)
+    c_ref = avg_pool_reflect(c_in, window).detach()
+    weights = smoothstep(
         reliability_low,
         reliability_high,
+        luminance(x) - reliability_noise * sigma.detach(),
     ).detach()
-    return masked_mean((chroma - reference).abs(), mask, eps)
+    c_out = output / (output.sum(dim=1, keepdim=True) + eps)
+    return masked_mean((c_out - c_ref).abs(), weights, channels=3)

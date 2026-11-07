@@ -5,10 +5,10 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
-import torch.nn.functional as F
+import torch
 from torch import Tensor
 
-from nta_zerodce.tensor_ops import smoothstep
+from nta_zerodce.losses._ops import luminance, pool_mean, smoothstep
 
 
 def adaptive_targets(
@@ -35,18 +35,24 @@ def adaptive_targets(
         Detached patch targets (B,1,H//patch_size,W//patch_size) in [0,1].
 
     Method:
-        Extension 4 target formula and smoothstep in METHOD. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 4: with Yp=P_k(Y(x)) and sigma_p=P_k(sigma),
+        T = target + (Yp-target)*smoothstep(low,high,Yp) - penalty*clamp(sigma_p/noise_scale,0,1).
+        Neither the image nor sigma receives gradient, so the loss cannot lower targets by
+        inflating sigma. See docs/METHOD.md; extensions are project proposals.
 
     Raises:
-        ValueError: Invalid inputs or incompatible configuration.
+        ValueError: If shapes disagree, noise_scale is not positive or low >= high.
     """
-    yp = F.avg_pool2d(image.mean(1, keepdim=True), patch_size)
-    sp = F.avg_pool2d(sigma.detach(), patch_size)
-    return (
-        target
-        + (yp - target) * smoothstep(yp, low, high)
-        - noise_penalty * (sp / noise_scale).clamp(0, 1)
-    ).detach()
+    if noise_scale <= 0:
+        raise ValueError(f"noise_scale must be positive, got {noise_scale}")
+    if image.shape[0] != sigma.shape[0] or image.shape[-2:] != sigma.shape[-2:]:
+        raise ValueError(f"image {tuple(image.shape)} and sigma {tuple(sigma.shape)} disagree")
+    with torch.no_grad():
+        yp = pool_mean(luminance(image.detach()), patch_size)
+        sigma_p = pool_mean(sigma.detach(), patch_size)
+        raised = target + (yp - target) * smoothstep(low, high, yp)
+        penalty = noise_penalty * (sigma_p / noise_scale).clamp(0.0, 1.0)
+        return (raised - penalty).detach()
 
 
 def adaptive_exposure_loss(output: Tensor, targets: Tensor, patch_size: int = 16) -> Tensor:
@@ -61,11 +67,14 @@ def adaptive_exposure_loss(output: Tensor, targets: Tensor, patch_size: int = 16
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 4; mean squared pooled luminance error, replaces L_exp. See docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        Extension 4; mean squared pooled luminance error mean (P_k(Y(o))-T)^2, replaces L_exp.
+        Targets are detached defensively. See docs/METHOD.md; extensions are project proposals.
 
     Raises:
-        ValueError: Invalid inputs or incompatible configuration.
+        ValueError: If the targets do not match the pooled output shape.
     """
-    return (
-        (F.avg_pool2d(output.mean(1, keepdim=True), patch_size) - targets.detach()).square().mean()
-    )
+    pooled = pool_mean(luminance(output), patch_size)
+    if pooled.shape != targets.shape:
+        raise ValueError(f"targets {tuple(targets.shape)} must match pooled {tuple(pooled.shape)}")
+    diff = pooled - targets.detach()
+    return (diff * diff).mean()

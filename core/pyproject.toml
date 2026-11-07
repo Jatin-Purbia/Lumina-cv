@@ -4,15 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nta_zerodce"
-version = "0.0.1"
-description = "Noise- and Temporal-Aware Zero-DCE training and inference"
+version = "0.1.0"
+description = "Noise- and Temporal-Aware Zero-DCE: training, inference and HTTP API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dependencies = ["torch>=2.2", "numpy>=1.26", "opencv-python>=4.8", "scikit-image>=0.22", "pillow>=10", "tqdm>=4.66", "pyyaml>=6"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff==0.12.7", "mypy>=1.10,<2", "pre-commit>=3.7", "nbstripout>=0.7"]
+api = ["fastapi>=0.115", "uvicorn>=0.30", "python-multipart>=0.0.9"]
+dev = [
+  "pytest>=8",
+  "ruff==0.12.7",
+  "mypy>=1.10,<2",
+  "pre-commit>=3.7",
+  "nbstripout>=0.7",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -25,7 +36,10 @@ line-length = 100
 select = ["E4", "E7", "E9", "F", "I", "UP", "ANN"]
 
 [tool.mypy]
-python_version = "3.10"
+# numpy 2.5+ ships stubs using Python 3.12 `type` statements, which mypy rejects when it
+# targets 3.10, and mypy ignores follow_imports=skip for installed packages. Type-check
+# against 3.12; runtime 3.10 compatibility is enforced by ruff target-version and CI on 3.10.
+python_version = "3.12"
 strict = true
 follow_imports = "silent"
 mypy_path = "src"
@@ -41,8 +55,7 @@ xfail_strict = true
 module = ["yaml.*"]
 ignore_missing_imports = true
 
-# Keep public Tensor/nn/optimizer types, without traversing unused compiler,
-# distributed, export and testing subsystems pulled in by torch's public imports.
+# Third-party tensor internals are opaque; project signatures remain strict.
 [[tool.mypy.overrides]]
 module = ["torch._dynamo.*", "torch._inductor.*", "torch.distributed.*", "torch.onnx.*", "torch.testing.*", "torch.fx.*", "torch._export.*", "torch.export.*", "torch.jit.*"]
 follow_imports = "skip"

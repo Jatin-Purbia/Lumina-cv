@@ -1,230 +1,203 @@
-"""Shared command orchestration for the five documented entry points."""
+"""Shared command-line layer for every script.
+
+Adds the common INTERFACES flags to an argparse parser, maps them to dotted config overrides
+(None means "not supplied", never false), resolves a validated Config and converts expected
+failures into one-line messages with stable exit codes. Importing this module has no side effects.
+
+See docs/INTERFACES.md for the normative CLI contract.
+"""
 
 from __future__ import annotations
 
 import argparse
-import csv
-import hashlib
-import json
-from dataclasses import asdict
+import os
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
-import cv2
-import torch
-import yaml
+from nta_zerodce.training.config import Config, FeatureFlags, parse_config
 
-from nta_zerodce.data.files import IMAGE_SUFFIXES, VIDEO_SUFFIXES, image_files
-from nta_zerodce.data.synthetic_pairs import make_pair
-from nta_zerodce.inference.enhancer import enhance_image
-from nta_zerodce.inference.io import read_image, read_video, write_image, write_video
-from nta_zerodce.inference.video_enhancer import VideoEnhancer
-from nta_zerodce.inference.webcam import run_webcam
-from nta_zerodce.models.factory import build_model
-from nta_zerodce.models.nta_zerodce import NTAZeroDCE
-from nta_zerodce.training.checkpoint import load_checkpoint
-from nta_zerodce.training.config import Config, load_config, save_config
-from nta_zerodce.training.evaluation import evaluate
-from nta_zerodce.training.trainer import train
-from nta_zerodce.training.validation import config_from_dict, core_path
-from nta_zerodce.utils.device import resolve_device
-from nta_zerodce.utils.seed import seed_everything
+EXIT_OK = 0
+EXIT_RUNTIME = 1
+EXIT_USAGE = 2
+
+ARG_TO_FIELD: dict[str, str] = {
+    "noise": "flags.noise_aware",
+    "denoise": "flags.denoise",
+    "edge": "flags.edge",
+    "chroma": "flags.chroma",
+    "adaptive_exp": "flags.adaptive_exp",
+    "temporal": "flags.temporal",
+    "light": "flags.light",
+    "curve_scale": "model.curve_scale",
+    "video_dir": "paths.video_dir",
+    "seed": "training.seed",
+    "device": "training.device",
+}
+"""argparse destination name to dotted config field (INTERFACES CLI mapping)."""
+
+TRACEBACK_ENV = "LUMINA_TRACEBACK"
+"""Set to a truthy value to let main_guard re-raise instead of printing one line."""
 
 
-def cli_config(args: argparse.Namespace) -> Config:
-    """Apply only explicitly supplied CLI overrides to the selected YAML."""
-    keys = {
-        "noise": "flags.noise_aware",
-        "adaptive_exp": "flags.adaptive_exp",
-        "curve_scale": "model.curve_scale",
-        "video_dir": "paths.video_dir",
-        "seed": "training.seed",
-        "device": "training.device",
+def add_common_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add the flags shared by every script.
+
+    Args:
+        parser: Parser to extend in place.
+
+    Returns:
+        None. Adds --config (default configs/baseline.yaml), the boolean pairs --noise/--no-noise,
+        --denoise, --edge, --chroma, --adaptive-exp, --temporal and --light (all default None, so
+        absence preserves the YAML value), --curve-scale (float), --video-dir (str), --seed (int)
+        and --device (str).
+
+    Method:
+        INTERFACES CLI contract using argparse.BooleanOptionalAction.
+
+    Raises:
+        argparse.ArgumentError: A flag name is already defined on the parser.
+    """
+    parser.add_argument("--config", default="configs/baseline.yaml", help="Experiment YAML")
+    toggles = {
+        "--noise": "noise-aware sigma branch (flags.noise_aware)",
+        "--denoise": "residual denoiser; requires noise (flags.denoise)",
+        "--edge": "edge-preservation loss (flags.edge)",
+        "--chroma": "chroma-consistency loss (flags.chroma)",
+        "--adaptive-exp": "adaptive exposure target (flags.adaptive_exp)",
+        "--temporal": "temporal consistency (flags.temporal)",
+        "--light": "lightweight network (flags.light)",
     }
-    keys.update(
-        {name: f"flags.{name}" for name in ("denoise", "edge", "chroma", "temporal", "light")}
+    for flag, text in toggles.items():
+        parser.add_argument(
+            flag,
+            action=argparse.BooleanOptionalAction,
+            default=None,
+            help=f"Enable or disable {text}; omitted keeps the YAML value",
+        )
+    parser.add_argument(
+        "--curve-scale", type=float, default=None, help="Curve resolution scale in (0, 1]"
     )
-    return load_config(
-        Path(args.config), {key: getattr(args, name, None) for name, key in keys.items()}
+    parser.add_argument("--video-dir", type=str, default=None, help="Override paths.video_dir")
+    parser.add_argument("--seed", type=int, default=None, help="Override training.seed")
+    parser.add_argument(
+        "--device", type=str, default=None, help="auto, cpu, cuda or cuda:N (training.device)"
     )
 
 
-def loaded_model(args: argparse.Namespace, config: Config) -> NTAZeroDCE:
-    """Load a compatible checkpoint on CPU, then move to the requested device."""
-    if not args.checkpoint:
-        raise ValueError("--checkpoint is required")
-    model = build_model(config)
-    load_checkpoint(core_path(args.checkpoint), model, expected_config=config)
-    model.to(resolve_device(config.training.device)).eval()
-    return model
+def overrides_from_args(args: argparse.Namespace) -> dict[str, object]:
+    """Map parsed shared flags to dotted config overrides.
+
+    Args:
+        args: Namespace produced by a parser extended with add_common_arguments.
+
+    Returns:
+        One entry per shared flag keyed by its dotted field (flags.noise_aware, model.curve_scale,
+        paths.video_dir, training.seed, training.device, ...). A value of None means the flag
+        was not supplied; an explicit --no-x is False and overrides YAML true.
+
+    Method:
+        INTERFACES: None is absent, not false.
+
+    Raises:
+        None.
+    """
+    return {field: getattr(args, dest, None) for dest, field in ARG_TO_FIELD.items()}
 
 
-def dispatch(command: str, args: argparse.Namespace) -> None:
-    """Execute a documented command, with actionable input validation."""
-    if command == "ablate":
-        run_ablations(args)
-        return
-    config = cli_config(args)
-    seed_everything(config.training.seed)
-    if command == "train":
-        print(train(config, Path(args.resume) if args.resume else None))
-    elif command == "enhance":
-        if args.webcam is not None and args.input is not None:
-            raise ValueError("--webcam and --input are mutually exclusive")
-        if args.webcam is None and (not args.input or not args.output):
-            raise ValueError("--input and --output are required unless --webcam is set")
-        model = loaded_model(args, config)
-        if args.webcam is not None:
-            run_webcam(model, config, args.webcam)
-        else:
-            enhance_path(model, config, core_path(args.input), core_path(args.output))
-    elif command == "evaluate":
-        if not args.output:
-            raise ValueError("--output is required")
-        evaluate(
-            loaded_model(args, config),
-            config,
-            core_path(args.output),
-            core_path(args.input) if args.input else None,
+def flag_conflict(flags: FeatureFlags, args: argparse.Namespace | None = None) -> str | None:
+    """Describe an invalid flag combination after CLI and YAML are merged.
+
+    Args:
+        flags: Resolved flags (not yet validated).
+        args: Optional parsed namespace, used to name the responsible command-line option.
+
+    Returns:
+        None when consistent, else a one-line message. The only dependency is that denoise
+        needs noise; the message says whether --no-noise or the YAML caused it.
+
+    Method:
+        denoise implies noise_aware (INTERFACES flags row).
+
+    Raises:
+        None.
+    """
+    if flags.denoise is True and flags.noise_aware is False:
+        source = ""
+        if args is not None and getattr(args, "noise", None) is False:
+            source = " (--no-noise was given)"
+        return (
+            "denoise requires noise-awareness but noise is disabled" + source + "; "
+            "drop --no-noise, add --no-denoise, or set flags.noise_aware: true in the YAML"
         )
-    elif command == "make_synthetic_data":
-        if not args.input or not args.output:
-            raise ValueError("--input and --output are required")
-        source, output = core_path(args.input), core_path(args.output)
-        files = image_files(source)
-        if not files:
-            raise ValueError(f"No source images: {source}")
-        output.mkdir(parents=True, exist_ok=True)
-        save_config(config, output / "config.yaml")
-        for index, path in enumerate(files):
-            sample = output / f"{index:06d}"
-            if sample.exists():
-                raise ValueError(f"Synthetic sample already exists: {sample}")
-            sample.mkdir()
-            generator = torch.Generator().manual_seed(config.training.seed + index)
-            pair = make_pair(read_image(path), config, generator)
-            write_image(pair["image1"], sample / "first.png")
-            write_image(pair["image2"], sample / "second.png")
-            # Retain unquantized frames, analytic fields and sampled transform metadata.
-            torch.save(pair, sample / "pair.pt")
-            metadata = {
-                "source": str(path),
-                "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                "seed": config.training.seed + index,
-                "config": asdict(config),
-            }
-            (sample / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    else:
-        raise ValueError(f"Unknown command: {command}")
+    return None
 
 
-def enhance_path(model: NTAZeroDCE, config: Config, source: Path, output: Path) -> None:
-    """Enhance a still, recursive image directory, or video preserving source FPS."""
-    if not source.exists():
-        raise ValueError(f"Input does not exist: {source}")
-    if source.resolve() == output.resolve() or (
-        source.is_dir() and source.resolve() in output.resolve().parents
-    ):
-        raise ValueError("Output must be separate from the input tree")
-    device = next(model.parameters()).device
-    if source.is_file() and source.suffix.lower() in VIDEO_SUFFIXES:
-        capture = cv2.VideoCapture(str(source))
-        try:
-            fps = capture.get(cv2.CAP_PROP_FPS)
-        finally:
-            capture.release()
-        enhancer = VideoEnhancer(model, config)
-        frames = (
-            enhancer.enhance_frame(frame.to(device))["enhanced"] for frame in read_video(source)
-        )
-        write_video(frames, output, fps)
-        return
-    files = image_files(source)
-    if not files:
-        raise ValueError(f"No supported input images: {source}")
-    for path in files:
-        target = (
-            output / path.relative_to(source)
-            if source.is_dir()
-            else output / path.name
-            if output.suffix.lower() not in IMAGE_SUFFIXES
-            else output
-        )
-        if target.exists():
-            raise ValueError(f"Output already exists: {target}")
-        result = enhance_image(model, read_image(path).to(device), config.model.curve_scale)
-        write_image(result["enhanced"], target)
+def resolve_config(args: argparse.Namespace) -> Config:
+    """Load the YAML named by --config, apply CLI overrides and validate.
+
+    Args:
+        args: Namespace from a parser extended with add_common_arguments.
+
+    Returns:
+        Validated immutable Config. Precedence: schema defaults < complete YAML < explicit CLI.
+
+    Method:
+        parse_config, then the flag-conflict explanation, then Config.validate.
+
+    Raises:
+        FileNotFoundError: The YAML does not exist.
+        ValueError: Parse, unknown/missing key, flag conflict or bound violation.
+    """
+    config = parse_config(Path(args.config), overrides_from_args(args))
+    message = flag_conflict(config.flags, args)
+    if message is not None:
+        raise ValueError(message)
+    config.validate()
+    return config
 
 
-def run_ablations(args: argparse.Namespace) -> None:
-    """Validate the entire fixed matrix before scheduling independent seed runs."""
-    matrix = yaml.safe_load(core_path(args.matrix).read_text(encoding="utf-8"))
-    if not isinstance(matrix, dict) or set(matrix) != {"base_config", "seeds", "runs"}:
-        raise ValueError("Matrix requires base_config, seeds and runs")
-    seeds, rows = matrix["seeds"], matrix["runs"]
-    if (
-        not isinstance(seeds, list)
-        or not seeds
-        or any(type(s) is not int or s < 0 for s in seeds)
-        or len(set(seeds)) != len(seeds)
-    ):
-        raise ValueError("Matrix seeds must be unique nonnegative integers")
-    canonical = yaml.safe_load(
-        core_path("configs/ablation_matrix.yaml").read_text(encoding="utf-8")
-    )
-    expected = {row["name"]: row["flags"] for row in canonical["runs"]}
-    if not isinstance(rows, list) or len(rows) != 13:
-        raise ValueError("Expected all 13 documented ablation rows")
-    names = set()
-    for row in rows:
-        if (
-            not isinstance(row, dict)
-            or set(row) != {"name", "flags"}
-            or row["name"] in names
-            or row["name"] not in expected
-            or row["flags"] != expected[row["name"]]
-        ):
-            raise ValueError("Matrix must contain the documented unique flag combinations")
-        names.add(row["name"])
-    # Feature/seed overrides would silently alter the experimental matrix.
-    if any(
-        getattr(args, name, None) is not None
-        for name in (
-            "noise",
-            "denoise",
-            "edge",
-            "chroma",
-            "adaptive_exp",
-            "temporal",
-            "light",
-            "seed",
-        )
-    ):
-        raise ValueError("Ablation flags and seeds are controlled by --matrix")
-    args.config = matrix["base_config"]
-    base = cli_config(args)
-    output = core_path(args.output or "runs/ablations")
-    configs = []
-    for row in rows:
-        for seed in seeds:
-            folder = output / row["name"] / str(seed)
-            data = asdict(base)
-            data["flags"] = row["flags"]
-            data["training"]["seed"] = seed
-            data["paths"]["run_dir"] = str(folder)
-            data["paths"]["checkpoint_dir"] = str(folder / "checkpoints")
-            configs.append((folder, config_from_dict(data)))
-    output.mkdir(parents=True, exist_ok=True)
-    with (output / "runs.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["run", "seed", "checkpoint", "evaluation"])
-        for folder, config in configs:
-            checkpoint = train(config)
-            model = build_model(config)
-            load_checkpoint(checkpoint, model, expected_config=config)
-            model.to(resolve_device(config.training.device))
-            destination = folder / "evaluation.csv"
-            evaluate(model, config, destination)
-            writer.writerow(
-                [folder.parent.name, config.training.seed, str(checkpoint), str(destination)]
-            )
-            handle.flush()
+def main_guard(run: Callable[[], int | None], *, prog: str | None = None) -> int:
+    """Run a script body and convert expected failures into an exit code.
+
+    Args:
+        run: Zero-argument callable returning an exit code or None (treated as 0).
+        prog: Name used as the message prefix; defaults to the basename of sys.argv[0].
+
+    Returns:
+        0 on success. 2 for usage/config errors (ValueError, FileNotFoundError), 1 for runtime
+        errors (NotImplementedError, RuntimeError, OSError), 130 on Ctrl-C. Each failure prints a
+        single ``prog: error: message`` line to stderr and no traceback. Set the environment
+        variable LUMINA_TRACEBACK=1 to re-raise for debugging. SystemExit (argparse) passes
+        through; other exceptions are bugs and propagate.
+
+    Method:
+        Ordered except clauses; FileNotFoundError is matched before OSError.
+
+    Raises:
+        Exception: Unexpected exception types, and any exception when LUMINA_TRACEBACK is set.
+    """
+    name = prog if prog is not None else Path(sys.argv[0] or "lumina").name
+    debug = os.environ.get(TRACEBACK_ENV, "").lower() in {"1", "true", "yes"}
+    try:
+        code = run()
+    except KeyboardInterrupt:
+        print(f"{name}: interrupted", file=sys.stderr)
+        return 130
+    except (ValueError, FileNotFoundError) as err:
+        if debug:
+            raise
+        print(f"{name}: error: {_one_line(err)}", file=sys.stderr)
+        return EXIT_USAGE
+    except (NotImplementedError, RuntimeError, OSError) as err:
+        if debug:
+            raise
+        print(f"{name}: error: {_one_line(err)}", file=sys.stderr)
+        return EXIT_RUNTIME
+    return EXIT_OK if code is None else int(code)
+
+
+def _one_line(err: BaseException) -> str:
+    """Collapse an exception message to a single line (with the type for empty messages)."""
+    text = " ".join(str(err).split())
+    return text or type(err).__name__
