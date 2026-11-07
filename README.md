@@ -12,18 +12,54 @@ web/    Next.js app: upload an image, enhance it, compare before/after - see web
 
 Needs Python 3.10+ and Node.js 22.
 
-```sh
-# 1. API server (set LUMINA_CHECKPOINT to a trained final.pt)
-cd core
-python -m pip install -e ".[dev]"
-LUMINA_CHECKPOINT=path/to/final.pt python -m nta_zerodce.api   
-# http://127.0.0.1:8000
+### 1. Backend (API server)
 
-# 2. Web app (second terminal)
+One-time setup, from the repo root:
+
+```sh
+cd core
+python -m venv .venv
+python -m pip install -e ".[dev]"      # run after activating the venv (below)
+```
+
+Activate the virtual environment (skip if you use conda/base and already installed the package):
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```sh
+# macOS / Linux / Git Bash
+source .venv/bin/activate        # Git Bash on Windows: source .venv/Scripts/activate
+```
+
+Start the server with the path to a trained checkpoint. The server listens on
+http://127.0.0.1:8000 and keeps running until you press Ctrl+C.
+
+```powershell
+# Windows PowerShell
+$env:LUMINA_CHECKPOINT = "path\to\final.pt"
+python -m nta_zerodce.api
+```
+
+```sh
+# macOS / Linux / Git Bash
+LUMINA_CHECKPOINT=path/to/final.pt python -m nta_zerodce.api
+```
+
+Check it is up: open http://127.0.0.1:8000/api/v1/health (`"model_loaded": true` means the
+checkpoint loaded). Without `LUMINA_CHECKPOINT` the server still starts, but image enhancement
+answers 503.
+
+### 2. Web app
+
+In a second terminal, from the repo root:
+
+```sh
 cd web
 npm ci
-npm run dev                                                    
-# http://localhost:3000
+npm run dev                      # http://localhost:3000
 ```
 
 The web app proxies `/api/v1/*` to the server in `LUMINA_API_URL` (default
