@@ -52,15 +52,6 @@ No dataset/checkpoint is installed.
 
 ## Quickstart
 
-Without any dataset (synthetic images, three CPU epochs, then enhancement of the test images):
-
-```sh
-python scripts/make_synthetic_data.py --output .smoke/data/train --count 32 --size 96 --seed 1
-python scripts/make_synthetic_data.py --output .smoke/data/test --count 4 --size 96 --seed 2
-python scripts/train.py --config configs/smoke.py --run-name smoke
-python scripts/enhance.py --checkpoint .smoke/checkpoints/smoke/final.pt --input .smoke/data/test --output .smoke/out --device cpu
-```
-
 With real data (see [DATA](docs/DATA.md) for the expected layout):
 
 ```sh

@@ -231,8 +231,7 @@ training/inference; CLI errors should eventually be actionable ValueErrors.
 
 ### Specialized YAML
 
-data_paths_example.py has one paths mapping with exactly the DataPaths fields;
-it is a merge example, not a complete training Config. ablation_matrix.py has
+ablation_matrix.py has
 base_config (local complete YAML), seeds (unique nonnegative integer list) and
 runs (unique name, complete FeatureFlags mapping). Every run inherits all base
 hyperparameters and overrides only flags plus seed. Reject duplicates, unknown
