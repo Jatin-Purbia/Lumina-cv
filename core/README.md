@@ -103,8 +103,6 @@ sets only the directory. See [INTERFACES](docs/INTERFACES.md) for precedence.
 | [utils](src/nta_zerodce/utils/) | Seed/device/registry contracts |
 | [scripts](scripts/) | Train, ablate, evaluate, enhance and synthetic-data CLIs |
 | [tests](tests/) | Unit, integration and end-to-end tests ([TESTING](docs/TESTING.md)) |
-| [notebook](notebooks/colab_quickstart.ipynb) | Colab outline, no execution/output |
-| [report](report/outline.md) | Final report outline tied to docs/figures/tables |
 
 ## Status badges table
 

@@ -12,7 +12,7 @@ server and a Next.js demo.
 Lumina-CV/
   core/                     Independent Python package nta_zerodce
     src/nta_zerodce/         models, losses, data, flow, metrics, training, inference, api
-    configs/ docs/ tests/ scripts/ notebooks/ report/
+    configs/ docs/ tests/ scripts/
   web/                      Next.js + React + TypeScript
     app/                     page and the runtime /api/v1 proxy route handler
     components/ hooks/ lib/ tests/
