@@ -12,8 +12,10 @@ Requirements: Python 3.10+, Node.js 22. Commands below are for Windows PowerShel
 macOS/Linux use `source .venv/bin/activate` to activate and `export NAME=value` instead of
 `$env:NAME = "value"`.
 
-The app needs a trained model (`final.pt`). Steps 1-3 create one; the server (step 4) cannot
-enhance images without it. The server never downloads data or trains by itself.
+The repo includes a trained model, `core/checkpoints/lol/final.pt` (about 1 MB, trained 10 epochs
+on the LOL dataset), so you can skip steps 2 and 3 and go straight to step 4. Steps 2-3 download
+the data and retrain it yourself. The server never downloads data or trains by itself. Only use
+checkpoints you trust: they are loaded with PyTorch's pickle-based format.
 
 ## 1. Set up the backend (once)
 

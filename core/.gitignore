@@ -13,8 +13,11 @@ venv/
 .env
 /data/
 /runs/
-/checkpoints/
-*.pt
+# checkpoints: only the shipped model is tracked; intermediate epochs and other runs stay local
+/checkpoints/*
+!/checkpoints/lol/
+/checkpoints/lol/*
+!/checkpoints/lol/final.pt
 *.pth
 *.mp4
 .ipynb_checkpoints/
