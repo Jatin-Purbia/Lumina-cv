@@ -23,7 +23,7 @@ cd core
 python -m venv .venv
 ```
 
-**Step 2. Activate it** (skip steps 1-2 if you use conda `base`)
+**Step 2. Activate it** (conda `base` users can skip this step and the `python -m venv` line, but still `cd core`)
 
 ```powershell
 # Windows PowerShell (the leading .\ is required)
