@@ -45,7 +45,7 @@ python -m pip install -e ".[dev]"
 **Step 4. Start the server**
 
 ```powershell
-$env:LUMINA_CHECKPOINT = "path	oinal.pt"
+$env:LUMINA_CHECKPOINT = "C:/path/to/final.pt"
 python -m nta_zerodce.api
 ```
 
