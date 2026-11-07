@@ -245,8 +245,6 @@ def _enhance_video(
     print(f"{source} -> {target} ({count} frames at {fps:.2f} fps, {detail})")
     print(f"enhanced 1 video in {elapsed:.2f} s ({count / max(elapsed, 1e-9):.1f} frames/s)")
 
-from nta_zerodce.cli import dispatch
-
 
 def run(args: argparse.Namespace) -> None:
     """Execute the enhance command after resolving validated settings.

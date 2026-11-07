@@ -57,8 +57,6 @@ def _default_run_name(checkpoint: Path) -> str:
         return checkpoint.parent.name
     return checkpoint.stem
 
-from nta_zerodce.cli import dispatch
-
 
 def run(args: argparse.Namespace) -> None:
     """Execute the evaluate command.

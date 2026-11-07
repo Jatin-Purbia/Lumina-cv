@@ -5,7 +5,6 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
-import torch.nn.functional as F
 from torch import Tensor
 
 from nta_zerodce.losses._ops import luminance, pool_mean

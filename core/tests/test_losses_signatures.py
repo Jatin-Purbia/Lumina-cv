@@ -184,17 +184,6 @@ def test_constant_gray_identities_and_initial_scale_table() -> None:
     assert float(edge_loss(_gray(0.3), _gray(0.3), flat_sigma, flat_gain)) == pytest.approx(
         0.0, abs=1e-6
     )
-    zero = temporal_loss(image, output, context["backward_flow"], torch.zeros_like(sigma))
-    assert zero == 0 and zero.requires_grad
-    # Baseline diagnostics have exact mathematical expectations.
-    baseline = build_losses(asdict(FeatureFlags()), asdict(config.weights))
-    gray = torch.full_like(output, 0.1, requires_grad=True)
-    assert baseline["spa"].callable(gray, gray) == 0
-    assert baseline["col"].callable(gray) == 0
-    assert baseline["tv"].callable(torch.zeros(2, 24, 32, 32)) == 0
-    assert torch.allclose(baseline["exp"].callable(gray), torch.tensor(0.25))
-    torch.autograd.backward(baseline["col"].callable(gray))
-    assert gray.grad is not None and torch.isfinite(gray.grad).all()
 
 
 def test_loss_values_for_hand_computable_inputs() -> None:

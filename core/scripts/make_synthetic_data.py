@@ -176,8 +176,6 @@ def _inside(path: Path, root: Path) -> bool:
     """Whether ``path`` stays under ``root`` after resolving symlinks and ``..``."""
     return root.resolve() in path.resolve().parents
 
-from nta_zerodce.cli import dispatch
-
 
 def run(args: argparse.Namespace) -> None:
     """Execute the make_synthetic_data command after resolving validated settings.

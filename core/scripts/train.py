@@ -45,8 +45,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     return parser
 
-from nta_zerodce.cli import dispatch
-
 
 def run(args: argparse.Namespace) -> None:
     """Execute the train command: resolve the config, delegate to ``trainer.train``.

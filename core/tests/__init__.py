@@ -1,1 +1,0 @@
-"""Core regression suite."""

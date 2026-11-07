@@ -249,7 +249,7 @@ stores twelve default LossSpec records referencing pure loss functions; no loss 
 at import. Dynamic registration is implemented in utils/registry.py.
 LOSS_CONTRACTS provides the complete declarative planned names/gates/weights/inputs.
 Registry[T] provides unique typed lookup; Config and its nested records are typed
-metadata; model and orchestration perform computation. For every executable class, constructor/forward and
+metadata, not computation. For every executable class, constructor/forward and
 other method contracts are listed below. Package __init__ files expose namespaces
 without eager imports or registry/model side effects.
 
@@ -387,7 +387,7 @@ Args:
     sigma_max: Positive bound in normalized RGB units.
 
 Returns:
-    No value; registers convolutional layers.
+    No value; future implementation registers convolutional layers.
 
 Method:
     METHOD extension 1: bounded sigmoid sigma; synthetic target sqrt(a*meanRGB(x)+b^2).
@@ -430,7 +430,7 @@ Args:
     residual_scale: Positive bound in normalized RGB units.
 
 Returns:
-    No value; registers convolutional layers.
+    No value; future implementation registers convolutional layers.
 
 Method:
     METHOD extension 1: clamp(z - residual_scale*tanh(head([z,sigma*gain])),0,1).
@@ -482,7 +482,7 @@ Args:
     config: Validated schema from training/config.py; denoise implies noise_aware.
 
 Returns:
-    No value; owns curve/noise/denoise submodules.
+    No value; future implementation owns curve/noise/denoise submodules.
 
 Method:
     ARCHITECTURE composition; flags gate construction.
@@ -1187,7 +1187,7 @@ Args:
     paired_root: Optional aligned high-reference root for image evaluation only.
 
 Returns:
-    No value; records stable sorted paths.
+    No value; future implementation records stable sorted paths and split manifests.
 
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
@@ -1250,7 +1250,7 @@ Args:
     frame_gap: Positive source-frame separation, default 1.
 
 Returns:
-    No value; records stable sorted paths.
+    No value; future implementation records stable sorted paths and split manifests.
 
 Method:
     DATA layouts; image eval preserves size, video pairs use gap=1 by default.
@@ -1520,7 +1520,7 @@ Args:
     config: Validated temporal, curve-scale and flow settings.
 
 Returns:
-    No value; owns VideoState.
+    No value; future implementation owns VideoState.
 
 Method:
     ARCHITECTURE inference graph; temporal flag false is frame-independent.
@@ -1659,7 +1659,7 @@ Args:
     fps: Positive source frame rate.
 
 Returns:
-    None; audio is omitted; release encoder on error.
+    None; no audio copying promised at M0; release encoder on error.
 
 Method:
     INTERFACES IO; timing and video-metric quantization caveats.
@@ -1868,7 +1868,7 @@ Args:
     epoch: Completed zero-based epoch index >=0.
 
 Returns:
-    None; file contains model/optimizer states, config, flags, schema_version, epoch and RNG states.
+    None; future file contains model/optimizer states, config, flags, schema_version, epoch and RNG states.
 
 Method:
     TESTING flag/config round-trip; atomic write and explicit checkpoint format version 1.
@@ -1936,7 +1936,7 @@ Args:
     deterministic: Request deterministic algorithms with explicit unsupported-op failures.
 
 Returns:
-    None; seeds Python, NumPy, CPU and available CUDA streams.
+    None; future implementation seeds CPU/CUDA and documents worker seeding.
 
 Method:
     EXPERIMENTS [17,29,43]; determinism does not guarantee identical cross-device results.
@@ -1982,7 +1982,7 @@ Args:
     self: Generic Registry[T].
 
 Returns:
-    No value; owns a string-to-T mapping.
+    No value; future implementation owns a string-to-T mapping.
 
 Method:
     CONTRIBUTING registration convention.

@@ -5,7 +5,6 @@ See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -198,7 +197,7 @@ def write_video(frames: Iterator[Tensor], path: Path, fps: float) -> None:
         fps: Positive source frame rate.
 
     Returns:
-        None; audio is omitted; release encoder on error.
+        None; no audio copying promised at M0; release encoder on error.
 
     Method:
         INTERFACES IO; timing and video-metric quantization caveats. Each frame is quantized

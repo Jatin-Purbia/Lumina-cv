@@ -19,10 +19,6 @@ from typing import Any, NoReturn, cast, get_type_hints
 
 import yaml
 
-import yaml
-
-from nta_zerodce.training.validation import config_from_dict, core_path, validate_config
-
 
 @dataclass(frozen=True)
 class FeatureFlags:

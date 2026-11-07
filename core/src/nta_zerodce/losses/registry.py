@@ -21,7 +21,6 @@ from nta_zerodce.losses.noise import fidelity_loss, invariance_loss, noise_loss
 from nta_zerodce.losses.smoothness import smoothness_loss
 from nta_zerodce.losses.spatial import spatial_loss
 from nta_zerodce.losses.temporal import temporal_loss
-from nta_zerodce.training.config import FeatureFlags
 
 LossCallable = Callable[..., Tensor]
 

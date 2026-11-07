@@ -19,7 +19,6 @@ from urllib.parse import unquote
 import pytest
 import yaml
 
-from nta_zerodce.cli import dispatch
 from nta_zerodce.losses.registry import LOSS_CONTRACTS, LOSS_REGISTRY
 from nta_zerodce.training.config import (
     Config,
@@ -879,7 +878,7 @@ def test_check_paths_rejects_unknown_root_and_empty_value(tmp_path: Path) -> Non
         check_paths(_with("paths.run_dir", ""), ["run_dir"])
 
 
-# Collection-time documentation and complete-configuration audits.
+# Active collection-time checks avoid implementing a function in this stub-only scaffold.
 # make docs-check collects this module; broken links fail during collection.
 ROOT = Path(__file__).resolve().parents[1]
 for document in [

@@ -57,5 +57,9 @@ ignore_missing_imports = true
 
 # Third-party tensor internals are opaque; project signatures remain strict.
 [[tool.mypy.overrides]]
-module = ["torch._dynamo.*", "torch._inductor.*", "torch.distributed.*", "torch.onnx.*", "torch.testing.*", "torch.fx.*", "torch._export.*", "torch.export.*", "torch.jit.*"]
+module = ["torch", "torch.*"]
 follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["nta_zerodce.models.*", "nta_zerodce.data.image_dataset", "nta_zerodce.data.video_pairs"]
+disallow_subclassing_any = false

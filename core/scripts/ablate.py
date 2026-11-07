@@ -131,8 +131,6 @@ def _plan_line(index: int, total: int, spec: RunSpec, leaf: Path, force: bool) -
         f"[{index}/{total}] {spec.name} seed={spec.seed} flags={'+'.join(on)} -> {leaf} [{status}]"
     )
 
-from nta_zerodce.cli import dispatch
-
 
 def run(args: argparse.Namespace) -> None:
     """Execute the ablate command.

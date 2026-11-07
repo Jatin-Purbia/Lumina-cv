@@ -68,9 +68,9 @@ python scripts/train.py --help
 python scripts/train.py --config configs/baseline.yaml
 python scripts/train.py --config configs/full.yaml --noise --denoise --edge --chroma --adaptive-exp --temporal --video-dir data/videos/train
 python scripts/ablate.py --matrix configs/ablation_matrix.yaml --output runs/ablations
-python scripts/evaluate.py --config configs/full.yaml --checkpoint checkpoints/last.pt --output runs/eval.csv
-python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/last.pt --input data/unpaired --output runs/enhanced --curve-scale 0.5
-python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/last.pt --webcam 0 --light --curve-scale 0.5
+python scripts/evaluate.py --config configs/full.yaml --checkpoint checkpoints/full.pt --output runs/eval.csv
+python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced --curve-scale 0.5
+python scripts/enhance.py --config configs/full.yaml --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
 python scripts/make_synthetic_data.py --config configs/full.yaml --input data/SICE/part1 --output data/synthetic
 ```
 
@@ -83,7 +83,7 @@ curl -F file=@dark.png http://127.0.0.1:8000/api/v1/enhance -o enhanced.png
 
 Use --no-noise / --no-edge etc. for explicit false overrides. Absent flags preserve
 YAML. Light must match the checkpoint; do not switch it on for a baseline checkpoint.
-To use real pairs set temporal.pair_source to real in YAML; --video-dir
+To use real pairs later set temporal.pair_source to real in YAML; --video-dir
 sets only the directory. See [INTERFACES](docs/INTERFACES.md) for precedence.
 
 ## Repository map
@@ -142,13 +142,3 @@ Our original work is [MIT](LICENSE). The Zero-DCE reference is CC BY-NC 4.0 and
 has not been copied; read [NOTICE](NOTICE.md) before importing any code/assets.
 Data licences remain separate. Use [CITATION.cff](CITATION.cff) for this software
 and cite the original paper and applicable datasets from [REFERENCES](docs/REFERENCES.md).
-
-## Runtime details
-
-Unpaired training never reads paired high-light targets. Image training holds out a deterministic 10% of scene IDs with split seed 17, independent of the model seed. Curate low-light exposures before training: the loader cannot identify enhanced composites automatically. Flat image roots use filenames as scene IDs; use scene directories for multiple exposures. Images smaller than the configured crop fail explicitly. Evaluation preserves original size; inference requires H,W >=16.
-
-Runs save resolved YAML, split/provenance JSON, raw and weighted loss CSV, gradient norms and atomic checkpoints. --resume requires the same resolved configuration and dataset content; continuation starts after the completed checkpoint epoch. Inference can change curve_scale while keeping checkpoint architecture and feature flags compatible. Only load checkpoints you trust.
-
-For explicit unpaired or video evaluation, pass --input to evaluate.py. A video input is a supported video file or a directory containing videos and no images. Without --input, evaluation requires paired low/high directories and also processes the unpaired directory if present. CSV records include sample IDs, mask coverage and input clipping. Videos preserve source FPS and omit audio. Webcam requires an available camera and GUI; these hardware paths have not been exercised here.
-
-The ablation command validates all 13 documented flag combinations before running each configured seed and writing independent training/evaluation outputs. It is a real training schedule, not a dry-run command. Synthetic export stores PNG previews, unquantized tensor pairs, analytic flows/masks and sampled affine/noise/flicker metadata in pair.pt, plus source hashes and resolved settings.

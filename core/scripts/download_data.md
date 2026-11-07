@@ -9,4 +9,4 @@ No downloader is implemented and no dataset has been fetched.
 4. Select low exposures, split by scene/session and save private manifests.
 5. Fill paths from [data_paths.example.yaml](../configs/data_paths.example.yaml)
    in the complete experiment YAML; keep LOL evaluation disjoint.
-6. Before training, validate configured roots and audit missing/duplicate files.
+6. Before M1, implement decoder/schema stubs and audit missing/duplicate files.

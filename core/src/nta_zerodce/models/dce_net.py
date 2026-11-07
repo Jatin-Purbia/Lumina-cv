@@ -99,7 +99,7 @@ class DCENet(nn.Module):
         return torch.tanh(self.head(torch.cat([h1, h6], dim=1)))
 
 
-class LightDCENet(DCENet):
+class LightDCENet(nn.Module):
     """Estimate curves with a project depthwise-separable variant; not a Zero-DCE++ reproduction.
 
     Each hidden 3x3 convolution of DCENet becomes depthwise 3x3 then pointwise 1x1; widths and
