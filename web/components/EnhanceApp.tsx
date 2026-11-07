@@ -2,6 +2,7 @@
 
 import type { DragEvent, ReactElement } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnalysisPanel } from "./AnalysisPanel";
 import { CompareSlider } from "./CompareSlider";
 import { FilePicker } from "./FilePicker";
 import { ResultSummary } from "./ResultSummary";
@@ -33,6 +34,7 @@ export function EnhanceApp(): ReactElement {
 
   const [file, setFile] = useState<File | null>(null);
   const [meta, setMeta] = useState<ResultMeta | null>(null);
+  const [enhancedBlob, setEnhancedBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<UserFacingError | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -65,6 +67,7 @@ export function EnhanceApp(): ReactElement {
     result.replace(null);
     setFile(candidate);
     setMeta(null);
+    setEnhancedBlob(null);
     setError(null);
     setAnnouncement(`${candidate.name} selected, ${formatBytes(candidate.size)}.`);
   };
@@ -87,6 +90,7 @@ export function EnhanceApp(): ReactElement {
       const out = await enhance({ file: upload, curveScale, signal: controller.signal });
       if (controller.signal.aborted) return;
       result.replace(out.blob);
+      setEnhancedBlob(out.blob);
       setMeta({ elapsedMs: out.elapsedMs, size: out.size, bytes: out.blob.size });
       setAnnouncement("Enhancement finished. Use the divider to compare the images.");
     } catch (caught) {
@@ -248,6 +252,10 @@ export function EnhanceApp(): ReactElement {
             ) : null}
           </aside>
         </div>
+
+        {hasResult && file !== null && enhancedBlob !== null ? (
+          <AnalysisPanel key={resultUrl} original={file} enhanced={enhancedBlob} />
+        ) : null}
 
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {announcement}

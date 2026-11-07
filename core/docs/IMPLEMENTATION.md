@@ -18,8 +18,7 @@ What is implemented, how to run it, and its limits. Design and math are in
 - **Inference**: image, video and webcam enhancers; checkpoint loader.
 - **Metrics**: PSNR, Gaussian-window SSIM, angular error, flat-region noise proxy, clipping,
   masked temporal error.
-- **API**: FastAPI server with upload limits and JSON errors. **Web**: Next.js upload and
-  before/after demo with a runtime API proxy.
+- **API**: FastAPI server with upload limits and JSON errors. **Web**: Next.js upload, before/after slider and an in-browser Analysis section (brightness, shadows, contrast, noise, saturation, tonal richness, clipping, histogram, comparison with matched gamma brightening; `web/lib/analysis.ts`), with a runtime API proxy.
 
 ## Commands
 

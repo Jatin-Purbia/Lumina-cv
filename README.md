@@ -85,8 +85,11 @@ npm run dev
 
 If the API is not on port 8000, first run `$env:LUMINA_API_URL = "http://127.0.0.1:8001"`
 (matching `LUMINA_PORT`). Open http://localhost:3000, choose a photo, press Enhance and drag the
-divider to compare. Photos larger than about 2 megapixels are shrunk in the browser before upload;
-the API limits are listed in [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md).
+divider to compare. Below the image, an **Analysis** section measures what changed (brightness,
+shadows, contrast, noise, color, tonal range, clipping), draws a brightness histogram and compares
+the result with plain brightening at the same overall brightness. It is computed in your browser,
+so it needs no extra server. Photos larger than about 2 megapixels are shrunk in the browser before
+upload; the API limits are listed in [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md).
 
 ## Command-line tools (optional)
 
