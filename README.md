@@ -14,15 +14,16 @@ Needs Python 3.10+ and Node.js 22.
 
 ### 1. Backend (API server)
 
-One-time setup, from the repo root:
+Steps 1-3 are one-time setup; run them from the repo root.
+
+**Step 1. Go to `core` and create a virtual environment**
 
 ```sh
 cd core
 python -m venv .venv
-python -m pip install -e ".[dev]"      # run after activating the venv (below)
 ```
 
-Activate the virtual environment (skip if you use conda/base and already installed the package):
+**Step 2. Activate it** (skip steps 1-2 if you use conda `base`)
 
 ```powershell
 # Windows PowerShell (the leading .\ is required)
@@ -35,7 +36,15 @@ Activate the virtual environment (skip if you use conda/base and already install
 source .venv/bin/activate        # Git Bash on Windows: source .venv/Scripts/activate
 ```
 
-Start the server with the path to a trained checkpoint. The server listens on
+**Step 3. Install the package**
+
+```sh
+python -m pip install -e ".[dev]"
+```
+
+**Step 4. Start the server** (every time, with the venv activated)
+
+Set the path to a trained checkpoint and start the server. It listens on
 http://127.0.0.1:8000 and keeps running until you press Ctrl+C.
 
 ```powershell
