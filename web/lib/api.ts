@@ -73,6 +73,7 @@ export async function getOptions(signal?: AbortSignal): Promise<OptionsResponse>
     options.max_upload_bytes = data.max_upload_bytes;
   }
   if (typeof data.max_side === "number") options.max_side = data.max_side;
+  if (typeof data.max_pixels === "number" && data.max_pixels > 0) options.max_pixels = data.max_pixels;
   if (Array.isArray(data.accepted_types)) {
     options.accepted_types = data.accepted_types.filter((t): t is string => typeof t === "string");
   }

@@ -170,6 +170,7 @@ const server = http.createServer((req, res) => {
       curve_scale: 1.0,
       max_upload_bytes: MAX_UPLOAD_BYTES,
       max_side: 4096,
+      max_pixels: 2097152,
       accepted_types: ["image/png", "image/jpeg"],
     });
   }

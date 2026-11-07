@@ -144,7 +144,15 @@ def test_health_without_model(bare_client: TestClient) -> None:
 
 def test_options_values(client: TestClient, settings: Settings) -> None:
     body = client.get(f"{BASE}/options").json()
-    assert set(body) == {"flags", "curve_scale", "max_upload_bytes", "max_side", "accepted_types"}
+    assert set(body) == {
+        "flags",
+        "curve_scale",
+        "max_upload_bytes",
+        "max_side",
+        "max_pixels",
+        "accepted_types",
+    }
+    assert body["max_pixels"] == settings.max_pixels
     assert body["accepted_types"] == ["image/png", "image/jpeg"]
     assert body["max_upload_bytes"] == 20 * 1024 * 1024 and body["max_side"] == 4096
     assert body["curve_scale"] == 1.0

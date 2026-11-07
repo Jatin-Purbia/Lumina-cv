@@ -318,6 +318,7 @@ def _build_router() -> APIRouter:
             "curve_scale": scale,
             "max_upload_bytes": settings.max_upload_bytes,
             "max_side": settings.max_side,
+            "max_pixels": settings.max_pixels,
             "accepted_types": list(ACCEPTED_TYPES),
         }
 

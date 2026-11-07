@@ -41,6 +41,7 @@ describe("getHealth / getOptions", () => {
         curve_scale: 0.5,
         max_upload_bytes: 1234,
         max_side: 2048,
+        max_pixels: 1000000,
         accepted_types: ["image/png", 7],
       }),
     );
@@ -51,6 +52,7 @@ describe("getHealth / getOptions", () => {
       curve_scale: 0.5,
       max_upload_bytes: 1234,
       max_side: 2048,
+      max_pixels: 1000000,
       accepted_types: ["image/png"],
     });
   });

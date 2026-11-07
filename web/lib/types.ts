@@ -12,6 +12,7 @@ export interface OptionsResponse {
   curve_scale?: number;
   max_upload_bytes?: number;
   max_side?: number;
+  max_pixels?: number;
   accepted_types?: string[];
 }
 

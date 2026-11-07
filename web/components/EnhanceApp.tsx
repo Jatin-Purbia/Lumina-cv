@@ -10,6 +10,7 @@ import { StatusIndicator } from "./StatusIndicator";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
 import { useServerInfo } from "@/hooks/useServerInfo";
 import { enhance } from "@/lib/api";
+import { DEFAULT_MAX_PIXELS, fitToPixelLimit } from "@/lib/resize";
 import { ApiError, describeError, isAbortError, type UserFacingError } from "@/lib/errors";
 import {
   DEFAULT_ACCEPTED_TYPES,
@@ -77,7 +78,13 @@ export function EnhanceApp(): ReactElement {
     setError(null);
     setAnnouncement("Enhancing image.");
     try {
-      const out = await enhance({ file, curveScale, signal: controller.signal });
+      const upload = await fitToPixelLimit(
+        file,
+        options?.max_pixels ?? DEFAULT_MAX_PIXELS,
+        options?.max_side,
+      );
+      if (controller.signal.aborted) return;
+      const out = await enhance({ file: upload, curveScale, signal: controller.signal });
       if (controller.signal.aborted) return;
       result.replace(out.blob);
       setMeta({ elapsedMs: out.elapsedMs, size: out.size, bytes: out.blob.size });
