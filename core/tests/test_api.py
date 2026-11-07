@@ -98,7 +98,7 @@ def assert_error(response: httpx.Response, status: int, code: str) -> None:
 def checkpoint(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A random-init (untrained) full-feature checkpoint; the API only needs a loadable model."""
     torch.manual_seed(0)
-    config = load_config(ROOT / "configs" / "full.yaml")
+    config = load_config(ROOT / "configs" / "full.py")
     model = build_model(config)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     path = tmp_path_factory.mktemp("ckpt") / "random_init.pt"
@@ -148,7 +148,7 @@ def test_options_values(client: TestClient, settings: Settings) -> None:
     assert body["accepted_types"] == ["image/png", "image/jpeg"]
     assert body["max_upload_bytes"] == 20 * 1024 * 1024 and body["max_side"] == 4096
     assert body["curve_scale"] == 1.0
-    full = load_config(ROOT / "configs" / "full.yaml")
+    full = load_config(ROOT / "configs" / "full.py")
     assert body["flags"]["noise_aware"] is True and body["flags"]["denoise"] is True
     assert set(body["flags"]) == set(vars(full.flags))
 
@@ -573,7 +573,7 @@ def test_corrupt_checkpoint_fails_startup(tmp_path: Path) -> None:
 
 def test_incompatible_config_fails_startup(checkpoint: Path) -> None:
     custom = Settings(
-        checkpoint=checkpoint, device="cpu", config_path=ROOT / "configs" / "baseline.yaml"
+        checkpoint=checkpoint, device="cpu", config_path=ROOT / "configs" / "baseline.py"
     )
     with pytest.raises(StartupError, match="LUMINA_CHECKPOINT"):
         with TestClient(create_app(custom)):
@@ -587,7 +587,7 @@ def test_bad_config_without_checkpoint_fails_startup(tmp_path: Path) -> None:
 
 
 def test_config_without_checkpoint_reports_its_flags() -> None:
-    custom = Settings(config_path=ROOT / "configs" / "full.yaml")
+    custom = Settings(config_path=ROOT / "configs" / "full.py")
     with TestClient(create_app(custom)) as c:
         assert c.get(f"{BASE}/options").json()["flags"]["noise_aware"] is True
         assert c.get(f"{BASE}/health").json()["model_loaded"] is False

@@ -34,7 +34,7 @@ from nta_zerodce.training.trainer import default_run_name, split_hash, train
 from nta_zerodce.utils.seed import make_generator
 
 CPU = torch.device("cpu")
-MATRIX = Path(__file__).resolve().parents[1] / "configs" / "ablation_matrix.yaml"
+MATRIX = Path(__file__).resolve().parents[1] / "configs" / "ablation_matrix.py"
 ROWS = [(name, dict(vars(flags))) for name, flags in parse_matrix(MATRIX)[2]]
 
 

@@ -2,7 +2,7 @@
 
 Examples (documented in README.md)::
 
-    python scripts/ablate.py --matrix configs/ablation_matrix.yaml --output runs/ablations
+    python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations
     python scripts/ablate.py --dry-run                      # print the plan, train nothing
     python scripts/ablate.py --only baseline --only full    # a subset of the rows
 
@@ -36,7 +36,7 @@ from nta_zerodce.training.evaluation import (
 )
 from nta_zerodce.training.trainer import train
 
-DEFAULT_MATRIX = "configs/ablation_matrix.yaml"
+DEFAULT_MATRIX = "configs/ablation_matrix.py"
 DEFAULT_OUTPUT = "runs/ablations"
 SUMMARY_COLUMNS = ("run", "seed", "status", "dataset", "metric", "mean", "count")
 _FORBIDDEN = ("noise", "denoise", "edge", "chroma", "adaptive_exp", "temporal", "light", "seed")

@@ -2,10 +2,10 @@
 
 Examples (documented in README.md)::
 
-    python scripts/train.py --config configs/baseline.yaml
-    python scripts/train.py --config configs/full.yaml --noise --denoise --edge --chroma \
+    python scripts/train.py --config configs/baseline.py
+    python scripts/train.py --config configs/full.py --noise --denoise --edge --chroma \
         --adaptive-exp --temporal --video-dir data/videos/train
-    python scripts/train.py --config configs/full.yaml --resume checkpoints/full_s17/epoch_0010.pt
+    python scripts/train.py --config configs/full.py --resume checkpoints/full_s17/epoch_0010.pt
 
 Outputs go to ``<paths.run_dir>/<run name>/`` (config, metrics.csv, val_metrics.csv) and
 ``<paths.checkpoint_dir>/<run name>/`` (epoch_XXXX.pt, final.pt); the run name is derived from

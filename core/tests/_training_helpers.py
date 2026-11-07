@@ -43,7 +43,7 @@ def tiny_config(
     Images are written to ``root/images`` (when ``make_images``); evaluation directories point at
     ``root/eval_low`` etc., which do not exist until a test creates them.
     """
-    base = load_config(CONFIGS / "baseline.yaml")
+    base = load_config(CONFIGS / "baseline.py")
     settings: dict[str, object] = {
         "crop_size": 32,
         "batch_size": batch_size,

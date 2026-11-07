@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import difflib
+import importlib.util
 import math
 import re
 from collections.abc import Iterable, Mapping
@@ -877,6 +878,32 @@ def _leaf_names() -> list[str]:
     return names
 
 
+def load_python_mapping(path: Path, variable: str) -> Any:
+    """Import a Python config module and return its module-level ``variable``.
+
+    Args:
+        path: Existing ``.py`` file (trusted project code, imported like any module).
+        variable: Name of the mapping the module must define, e.g. ``CONFIG``.
+
+    Raises:
+        FileNotFoundError: The file does not exist.
+        ValueError: The module cannot be imported or does not define ``variable``.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f"config file not found: {path}")
+    spec = importlib.util.spec_from_file_location(f"_lumina_config_{path.stem}", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load config module {path}")
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as err:  # noqa: BLE001 - surface any import failure as a config error
+        raise ValueError(f"cannot load config module {path}: {err}") from None
+    if not hasattr(module, variable):
+        raise ValueError(f"config module {path} must define {variable}")
+    return copy.deepcopy(getattr(module, variable))
+
+
 def parse_config(
     path: str | Path,
     overrides: Mapping[str, object] | None = None,
@@ -902,16 +929,19 @@ def parse_config(
         ValueError: Invalid YAML, non-mapping root, unknown or missing keys, bad override names.
     """
     resolved = resolve_path(path)
-    try:
-        text = resolved.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"config file not found: {resolved}") from None
-    except UnicodeDecodeError as err:
-        raise ValueError(f"config file {resolved} is not valid UTF-8: {err}") from None
-    try:
-        raw = yaml.load(text, Loader=_ConfigLoader)  # noqa: S506 - SafeLoader subclass
-    except (yaml.YAMLError, ValueError) as err:
-        raise ValueError(f"cannot parse config {resolved}: {err}") from None
+    if resolved.suffix == ".py":
+        raw = load_python_mapping(resolved, "CONFIG")
+    else:
+        try:
+            text = resolved.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"config file not found: {resolved}") from None
+        except UnicodeDecodeError as err:
+            raise ValueError(f"config file {resolved} is not valid UTF-8: {err}") from None
+        try:
+            raw = yaml.load(text, Loader=_ConfigLoader)  # noqa: S506 - SafeLoader subclass
+        except (yaml.YAMLError, ValueError) as err:
+            raise ValueError(f"cannot parse config {resolved}: {err}") from None
     if not isinstance(raw, dict):
         raise ValueError(f"config {resolved} must be a YAML mapping; got {type(raw).__name__}")
     try:

@@ -47,7 +47,7 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
         parser: Parser to extend in place.
 
     Returns:
-        None. Adds --config (default configs/baseline.yaml), the boolean pairs --noise/--no-noise,
+        None. Adds --config (default configs/baseline.py), the boolean pairs --noise/--no-noise,
         --denoise, --edge, --chroma, --adaptive-exp, --temporal and --light (all default None, so
         absence preserves the YAML value), --curve-scale (float), --video-dir (str), --seed (int)
         and --device (str).
@@ -58,7 +58,11 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     Raises:
         argparse.ArgumentError: A flag name is already defined on the parser.
     """
-    parser.add_argument("--config", default="configs/baseline.yaml", help="Experiment YAML")
+    parser.add_argument(
+        "--config",
+        default="configs/baseline.py",
+        help="Experiment config (.py with CONFIG, or .yaml)",
+    )
     toggles = {
         "--noise": "noise-aware sigma branch (flags.noise_aware)",
         "--denoise": "residual denoiser; requires noise (flags.denoise)",

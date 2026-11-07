@@ -236,7 +236,7 @@ def test_usage_errors_exit_two_with_one_line(
                 "--output",
                 out,
                 "--config",
-                "configs/baseline.yaml",
+                "configs/baseline.py",
             ],
             "noise_aware",
         ),

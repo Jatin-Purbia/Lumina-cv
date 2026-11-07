@@ -107,16 +107,16 @@ def test_unknown_schema_version_is_rejected(tmp_path: Path) -> None:
 
 def test_absent_flag_preserves_yaml_true_and_false() -> None:
     """With no flags given, the YAML values are untouched (including true flags)."""
-    full_config = resolve_config(_parse("--config", str(CONFIGS / "full.yaml")))
-    assert full_config == load_config(CONFIGS / "full.yaml")
+    full_config = resolve_config(_parse("--config", str(CONFIGS / "full.py")))
+    assert full_config == load_config(CONFIGS / "full.py")
     assert full_config.flags.noise_aware and full_config.flags.denoise
-    base_config = resolve_config(_parse("--config", str(CONFIGS / "baseline.yaml")))
+    base_config = resolve_config(_parse("--config", str(CONFIGS / "baseline.py")))
     assert not any(dataclasses.asdict(base_config.flags).values())
 
 
 def test_default_config_argument_is_baseline() -> None:
-    """The default --config is configs/baseline.yaml resolved against the workspace root."""
-    assert resolve_config(_parse()) == load_config(CONFIGS / "baseline.yaml")
+    """The default --config is configs/baseline.py resolved against the workspace root."""
+    assert resolve_config(_parse()) == load_config(CONFIGS / "baseline.py")
 
 
 @pytest.mark.parametrize(
@@ -132,8 +132,8 @@ def test_default_config_argument_is_baseline() -> None:
 )
 def test_explicit_false_overrides_yaml_true(option: str, field: str) -> None:
     """--no-<flag> beats YAML true, and --<flag> beats YAML false."""
-    full = str(CONFIGS / "full.yaml")
-    base = str(CONFIGS / "baseline.yaml")
+    full = str(CONFIGS / "full.py")
+    base = str(CONFIGS / "baseline.py")
     off = resolve_config(_parse("--config", full, "--no-denoise", f"--no-{option}"))
     assert getattr(off.flags, field) is False
     on = resolve_config(_parse("--config", base, f"--{option}"))
@@ -144,14 +144,14 @@ def test_explicit_false_overrides_yaml_true(option: str, field: str) -> None:
 def test_explicit_no_noise_with_yaml_denoise_fails_validation() -> None:
     """--no-noise while YAML denoise stays on is rejected with a message naming the flag."""
     with pytest.raises(ValueError, match=r"--no-noise") as info:
-        resolve_config(_parse("--config", str(CONFIGS / "full.yaml"), "--no-noise"))
+        resolve_config(_parse("--config", str(CONFIGS / "full.py"), "--no-noise"))
     assert "denoise" in str(info.value)
 
 
 def test_no_noise_together_with_no_denoise_is_valid() -> None:
     """Turning both off resolves cleanly and leaves the other YAML flags alone."""
     config = resolve_config(
-        _parse("--config", str(CONFIGS / "full.yaml"), "--no-noise", "--no-denoise")
+        _parse("--config", str(CONFIGS / "full.py"), "--no-noise", "--no-denoise")
     )
     assert not config.flags.noise_aware and not config.flags.denoise
     assert config.flags.edge and config.flags.chroma and config.flags.temporal
@@ -159,7 +159,7 @@ def test_no_noise_together_with_no_denoise_is_valid() -> None:
 
 def test_denoise_alone_on_baseline_fails_and_with_noise_passes() -> None:
     """--denoise needs --noise when YAML has noise disabled."""
-    base = str(CONFIGS / "baseline.yaml")
+    base = str(CONFIGS / "baseline.py")
     with pytest.raises(ValueError, match="denoise"):
         resolve_config(_parse("--config", base, "--denoise"))
     config = resolve_config(_parse("--config", base, "--noise", "--denoise"))
@@ -171,7 +171,7 @@ def test_value_flags_override_yaml() -> None:
     config = resolve_config(
         _parse(
             "--config",
-            str(CONFIGS / "full.yaml"),
+            str(CONFIGS / "full.py"),
             "--curve-scale",
             "0.5",
             "--video-dir",
@@ -185,7 +185,7 @@ def test_value_flags_override_yaml() -> None:
     assert config.model.curve_scale == 0.5
     assert config.paths.video_dir == "elsewhere/videos"
     assert config.training.seed == 29 and config.training.device == "cpu"
-    assert config.training.lr == load_config(CONFIGS / "full.yaml").training.lr
+    assert config.training.lr == load_config(CONFIGS / "full.py").training.lr
 
 
 @pytest.mark.parametrize(
@@ -201,12 +201,12 @@ def test_value_flags_override_yaml() -> None:
 def test_invalid_cli_values_fail_validation(argv: tuple[str, ...]) -> None:
     """Out-of-range CLI values are rejected by the same validation as YAML values."""
     with pytest.raises(ValueError):
-        resolve_config(_parse("--config", str(CONFIGS / "baseline.yaml"), *argv))
+        resolve_config(_parse("--config", str(CONFIGS / "baseline.py"), *argv))
 
 
 def test_every_flag_set_at_once_matches_manual_replace() -> None:
     """The full-flags command line equals editing the baseline flags directly."""
-    argv = ["--config", str(CONFIGS / "baseline.yaml")]
+    argv = ["--config", str(CONFIGS / "baseline.py")]
     argv += ["--noise", "--denoise", "--edge", "--chroma", "--adaptive-exp", "--temporal"]
     config = resolve_config(_parse(*argv))
     expected = dataclasses.replace(
@@ -215,4 +215,4 @@ def test_every_flag_set_at_once_matches_manual_replace() -> None:
             noise_aware=True, denoise=True, edge=True, chroma=True, adaptive_exp=True, temporal=True
         ),
     )
-    assert config == expected == load_config(CONFIGS / "full.yaml")
+    assert config == expected == load_config(CONFIGS / "full.py")

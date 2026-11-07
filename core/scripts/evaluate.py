@@ -3,7 +3,7 @@
 Examples (documented in README.md)::
 
     python scripts/evaluate.py --checkpoint checkpoints/full_s17/final.pt --output runs/eval.csv
-    python scripts/evaluate.py --config configs/full.yaml --checkpoint checkpoints/full.pt \
+    python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/full.pt \
         --output runs/eval.csv
 
 Without ``--config`` the resolved config stored in the checkpoint is used; flag options then

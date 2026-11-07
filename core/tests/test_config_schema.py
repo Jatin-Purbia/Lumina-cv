@@ -24,6 +24,7 @@ from nta_zerodce.training.config import (
     Config,
     check_paths,
     load_config,
+    load_python_mapping,
     parse_config,
     resolve_path,
     save_config,
@@ -31,8 +32,8 @@ from nta_zerodce.training.config import (
 )
 
 CONFIGS = Path(__file__).resolve().parents[1] / "configs"
-BASELINE = CONFIGS / "baseline.yaml"
-FULL = CONFIGS / "full.yaml"
+BASELINE = CONFIGS / "baseline.py"
+FULL = CONFIGS / "full.py"
 
 
 def _sections() -> dict[str, type[Any]]:
@@ -351,12 +352,12 @@ def test_load_baseline_and_full_match_flags() -> None:
 
 
 def test_baseline_equals_schema_defaults() -> None:
-    """baseline.yaml carries the schema defaults exactly (every field is explicit)."""
+    """baseline.py carries the schema defaults exactly (every field is explicit)."""
     assert load_config(BASELINE) == Config()
 
 
 def test_full_yaml_differs_from_baseline_only_in_flags() -> None:
-    """full.yaml changes only extension flags relative to baseline.yaml."""
+    """full.py changes only extension flags relative to baseline.py."""
     base, full = _plain(load_config(BASELINE)), _plain(load_config(FULL))
     assert {k: v for k, v in base.items() if k != "flags"} == {
         k: v for k, v in full.items() if k != "flags"
@@ -531,7 +532,7 @@ def test_load_does_not_use_cwd_for_relative_paths(
 ) -> None:
     """Relative YAML paths resolve against the workspace root, not the current directory."""
     monkeypatch.chdir(tmp_path)
-    assert load_config("configs/baseline.yaml") == load_config(BASELINE)
+    assert load_config("configs/baseline.py") == load_config(BASELINE)
     (tmp_path / "local.yaml").write_text("{}\n", encoding="utf-8")
     with pytest.raises(FileNotFoundError):
         load_config("local.yaml", partial=True)
@@ -638,7 +639,7 @@ def _round_trip(config: Config, tmp_path: Path) -> Config:
     return load_config(path)
 
 
-@pytest.mark.parametrize("name", ["baseline.yaml", "full.yaml"])
+@pytest.mark.parametrize("name", ["baseline.py", "full.py"])
 def test_round_trip_of_shipped_configs(tmp_path: Path, name: str) -> None:
     """load(save(c)) == c exactly for the shipped complete YAML files."""
     config = load_config(CONFIGS / name)
@@ -706,7 +707,7 @@ def test_save_keeps_path_strings_verbatim(tmp_path: Path) -> None:
 
 def _matrix() -> dict[str, Any]:
     """Parsed ablation matrix."""
-    return dict(yaml.safe_load((CONFIGS / "ablation_matrix.yaml").read_text(encoding="utf-8")))
+    return dict(load_python_mapping(CONFIGS / "ablation_matrix.py", "MATRIX"))
 
 
 def _rows() -> list[Any]:
@@ -725,7 +726,7 @@ def test_matrix_structure_and_row_names() -> None:
     names = [row["name"] for row in matrix["runs"]]
     assert len(names) == len(set(names)) == 13
     assert {"baseline", "full", "noise_only", "loo_noise", "loo_temporal"} <= set(names)
-    assert matrix["base_config"] == "configs/baseline.yaml"
+    assert matrix["base_config"] == "configs/baseline.py"
     assert matrix["seeds"] == [17, 29, 43] and all(isinstance(s, int) for s in matrix["seeds"])
 
 
@@ -772,8 +773,8 @@ def test_ablation_rows_round_trip(row: dict[str, Any], tmp_path: Path) -> None:
 def test_defaults_and_full_yaml_carry_every_field_and_exposure_gate() -> None:
     """Defaults and shipped YAML carry every dataclass field; adaptive replaces baseline exp."""
     defaults = _plain(Config())
-    for name in ("baseline.yaml", "full.yaml"):
-        raw = yaml.safe_load((CONFIGS / name).read_text(encoding="utf-8"))
+    for name in ("baseline.py", "full.py"):
+        raw = load_python_mapping(CONFIGS / name, "CONFIG")
         assert raw.keys() == defaults.keys()
         for section, fields in defaults.items():
             if isinstance(fields, dict):
@@ -893,14 +894,14 @@ for document in [
             assert (document.parent / unquote(target.strip("<>"))).exists(), (document, target)
 
 defaults = asdict(Config())
-for config_file in ["baseline.yaml", "full.yaml"]:
-    actual = yaml.safe_load((ROOT / "configs" / config_file).read_text(encoding="utf-8"))
+for config_file in ["baseline.py", "full.py"]:
+    actual = load_python_mapping(ROOT / "configs" / config_file, "CONFIG")
     assert actual.keys() == defaults.keys()
     for section, fields in defaults.items():
         if isinstance(fields, dict):
             assert actual[section].keys() == fields.keys(), (config_file, section)
     assert not actual["flags"]["denoise"] or actual["flags"]["noise_aware"]
-matrix = yaml.safe_load((ROOT / "configs" / "ablation_matrix.yaml").read_text(encoding="utf-8"))
+matrix = load_python_mapping(ROOT / "configs" / "ablation_matrix.py", "MATRIX")
 assert len(matrix["runs"]) == 13
 assert matrix["seeds"] == [17, 29, 43]
 for row in matrix["runs"]:

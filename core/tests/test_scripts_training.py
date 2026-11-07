@@ -27,11 +27,11 @@ from PIL import Image
 from nta_zerodce.data.image_dataset import make_synthetic_images
 from nta_zerodce.training.ablation import REQUIRED_ROWS, expand_matrix, parse_matrix
 from nta_zerodce.training.checkpoint import read_checkpoint, save_checkpoint
-from nta_zerodce.training.config import Config, load_config, save_config
+from nta_zerodce.training.config import Config, load_config, load_python_mapping, save_config
 from nta_zerodce.training.evaluation import EVAL_COLUMNS, heldout_video_dir, read_rows
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
-MATRIX = CONFIGS / "ablation_matrix.yaml"
+MATRIX = CONFIGS / "ablation_matrix.py"
 Capture = pytest.CaptureFixture[str]
 
 
@@ -311,7 +311,7 @@ def test_real_matrix_expands_to_39_deterministic_runs() -> None:
 
 
 def test_runs_inherit_base_hyperparameters_and_override_only_flags_and_seed() -> None:
-    base = load_config(CONFIGS / "baseline.yaml")
+    base = load_config(CONFIGS / "baseline.py")
     for spec in expand_matrix(MATRIX):
         expected = dataclasses.replace(
             base, flags=spec.flags, training=dataclasses.replace(base.training, seed=spec.seed)
@@ -322,19 +322,19 @@ def test_runs_inherit_base_hyperparameters_and_override_only_flags_and_seed() ->
 def test_expand_matrix_global_overrides_and_forbidden_overrides() -> None:
     specs = expand_matrix(MATRIX, {"training.epochs": 2, "paths.run_dir": None})
     assert {s.config.training.epochs for s in specs} == {2}
-    assert specs[0].config.paths.run_dir == load_config(CONFIGS / "baseline.yaml").paths.run_dir
+    assert specs[0].config.paths.run_dir == load_config(CONFIGS / "baseline.py").paths.run_dir
     with pytest.raises(ValueError, match="flags"):
         expand_matrix(MATRIX, {"flags.edge": True})
     with pytest.raises(ValueError, match="seed"):
         expand_matrix(MATRIX, {"training.seed": 3})
-    other = expand_matrix(MATRIX, base_config=CONFIGS / "full.yaml")
+    other = expand_matrix(MATRIX, base_config=CONFIGS / "full.py")
     assert other[0].flags == expand_matrix(MATRIX)[0].flags  # run flags still win over the base
 
 
 def _matrix(tmp_path: Path, edit: Callable[[dict[str, Any]], None]) -> Path:
     """Write a modified copy of the real matrix and return its path."""
-    data = yaml.safe_load(MATRIX.read_text())
-    data["base_config"] = str(CONFIGS / "baseline.yaml")
+    data = load_python_mapping(MATRIX, "MATRIX")
+    data["base_config"] = str(CONFIGS / "baseline.py")
     edit(data)
     path = tmp_path / "matrix.yaml"
     path.write_text(yaml.safe_dump(data))

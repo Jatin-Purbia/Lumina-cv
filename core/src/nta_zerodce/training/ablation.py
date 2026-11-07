@@ -1,8 +1,8 @@
 """Ablation matrix parsing, validation and expansion (docs/EXPERIMENTS.md, INTERFACES).
 
-``configs/ablation_matrix.yaml`` has exactly three keys::
+``configs/ablation_matrix.py`` (``MATRIX``; a YAML file is also accepted) has exactly three keys::
 
-    base_config: configs/baseline.yaml     # complete experiment YAML, workspace-relative
+    base_config: configs/baseline.py       # complete experiment config, workspace-relative
     seeds: [17, 29, 43]                    # unique nonnegative integers
     runs:                                  # unique names, complete FeatureFlags mappings
       - name: baseline
@@ -28,6 +28,7 @@ import yaml
 from nta_zerodce.training.config import (
     Config,
     FeatureFlags,
+    load_python_mapping,
     override_config,
     parse_config,
     resolve_path,
@@ -122,14 +123,17 @@ def parse_matrix(
             names the offending entry.
     """
     resolved = resolve_path(path)
-    try:
-        text = resolved.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"ablation matrix not found: {resolved}") from None
-    try:
-        raw = yaml.safe_load(text)
-    except yaml.YAMLError as err:
-        raise ValueError(f"cannot parse ablation matrix {resolved}: {err}") from None
+    if resolved.suffix == ".py":
+        raw = load_python_mapping(resolved, "MATRIX")
+    else:
+        try:
+            text = resolved.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"ablation matrix not found: {resolved}") from None
+        try:
+            raw = yaml.safe_load(text)
+        except yaml.YAMLError as err:
+            raise ValueError(f"cannot parse ablation matrix {resolved}: {err}") from None
     if not isinstance(raw, dict):
         raise ValueError(f"ablation matrix {resolved} must be a YAML mapping")
     expected = {"base_config", "seeds", "runs"}

@@ -23,7 +23,7 @@ objectives in [METHOD](METHOD.md) are project proposals. Baseline attribution:
 | loo_adaptive | on | on | on | on | off | on |
 | loo_temporal | on | on | on | on | on | off |
 
-Exact rows are in [ablation_matrix.yaml](../configs/ablation_matrix.yaml). There
+Exact rows are in [ablation_matrix.py](../configs/ablation_matrix.py). There
 is no denoise-only row because it is invalid. Noise extension alone uses
 noise_only, and noise_denoise isolates the additional residual head. Leave-one-out
 removes all parts of an extension; loo_noise removes both heads. Temporal training

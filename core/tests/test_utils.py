@@ -422,7 +422,7 @@ def test_common_arguments_are_exactly_the_contract() -> None:
 def test_defaults_are_absent() -> None:
     """Everything defaults to None except --config."""
     args = vars(_parser().parse_args([]))
-    assert args.pop("config") == "configs/baseline.yaml"
+    assert args.pop("config") == "configs/baseline.py"
     assert args and all(value is None for value in args.values())
 
 
@@ -644,8 +644,8 @@ def test_main_guard_end_to_end_with_config_error(
     from nta_zerodce.cli import resolve_config
 
     def run() -> int:
-        """Resolve full.yaml with noise switched off (denoise stays on)."""
-        resolve_config(_parser().parse_args(["--config", "configs/full.yaml", "--no-noise"]))
+        """Resolve full.py with noise switched off (denoise stays on)."""
+        resolve_config(_parser().parse_args(["--config", "configs/full.py", "--no-noise"]))
         return 0
 
     assert main_guard(run, prog="train.py") == EXIT_USAGE
