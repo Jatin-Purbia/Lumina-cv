@@ -46,25 +46,28 @@ python -m pip install -e ".[dev]"
 
 ```powershell
 $env:LUMINA_CHECKPOINT = "C:/Desktop/Lumina-CV/core/checkpoints/full/final.pt"
+$env:LUMINA_PORT = "8001"          # optional; default is 8000
 python -m nta_zerodce.api
 ```
 
 A demo checkpoint trained on synthetic low-light images (40 epochs, CPU) is at that path on this machine; it is not stored in git and is not a quality model. Train your own as described under "Train a model" below. On macOS/Linux use
 `export LUMINA_CHECKPOINT=core/checkpoints/full/final.pt` instead of the first line.
-The API runs at http://127.0.0.1:8000 (stop with Ctrl+C).
+The API runs at http://127.0.0.1:8001 (stop with Ctrl+C). If you see "only one usage of each socket
+address", another program already uses that port: pick a different `LUMINA_PORT`.
 
 ### 2. Web app
 
 In a second terminal, from the repo root:
 
-```sh
+```powershell
 cd web
 npm ci
-npm run dev                      # http://localhost:3000
+$env:LUMINA_API_URL = "http://127.0.0.1:8001"   # must match LUMINA_PORT above
+npm run dev                                      # http://localhost:3000
 ```
 
-The web app proxies `/api/v1/*` to the server in `LUMINA_API_URL` (default
-`http://127.0.0.1:8000`).
+The web app proxies `/api/v1/*` to `LUMINA_API_URL` (default `http://127.0.0.1:8000`). On
+macOS/Linux use `export` instead of `$env:`.
 
 ## Train a model
 
