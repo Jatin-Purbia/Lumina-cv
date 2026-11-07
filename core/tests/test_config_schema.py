@@ -809,9 +809,9 @@ def test_workspace_root_ignores_cwd(monkeypatch: pytest.MonkeyPatch, tmp_path: P
 
 def test_resolve_path() -> None:
     """Absolute paths are kept; relative paths join the workspace root; no existence check."""
-    absolute = Path("/some/abs/dir")
+    absolute = Path(Path.cwd().anchor) / "some" / "abs" / "dir"  # absolute on POSIX and Windows
     assert resolve_path(absolute) == absolute
-    assert resolve_path("/some/abs/dir") == absolute
+    assert resolve_path(str(absolute)) == absolute
     assert resolve_path("data/x") == workspace_root() / "data" / "x"
     assert resolve_path(Path("runs")) == workspace_root() / "runs"
 

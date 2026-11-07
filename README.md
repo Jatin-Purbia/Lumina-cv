@@ -49,7 +49,7 @@ $env:LUMINA_CHECKPOINT = "C:/Desktop/Lumina-CV/core/checkpoints/full/final.pt"
 python -m nta_zerodce.api
 ```
 
-This file is created by training (see "Train a model" below). On macOS/Linux use
+A demo checkpoint trained on synthetic low-light images (40 epochs, CPU) is at that path on this machine; it is not stored in git and is not a quality model. Train your own as described under "Train a model" below. On macOS/Linux use
 `export LUMINA_CHECKPOINT=core/checkpoints/full/final.pt` instead of the first line.
 The API runs at http://127.0.0.1:8000 (stop with Ctrl+C).
 
