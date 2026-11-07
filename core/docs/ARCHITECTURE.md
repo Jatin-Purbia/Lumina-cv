@@ -140,7 +140,7 @@ in memory, and logs contain only method, path, status, time and request id.
 Local layout (paths set in the `paths` section of the config, relative to `core/`):
 
 ```text
-data/SICE/part1/<scene>/<exposure>.jpg      training images (unpaired objective)
+data/LOL/train_low/<scene>/low.png          training images (unpaired objective; python scripts/download_lol.py)
 data/LOL/eval15/{low,high}/<pair>.png       paired evaluation only, never trained on
 data/unpaired/{DICM,LIME,MEF,NPE}/...       qualitative evaluation
 data/videos/{train,val,test}/<session>/<clip>.mp4

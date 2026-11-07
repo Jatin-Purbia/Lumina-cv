@@ -84,7 +84,7 @@ CONFIG = {
     "training": {
         "lr": 0.0001,
         "batch_size": 8,
-        "crop_size": 256,
+        "crop_size": 128,
         "epochs": 100,
         "optimizer": "Adam",
         "adam_beta1": 0.9,
@@ -99,7 +99,7 @@ CONFIG = {
         "log_every": 10,
     },
     "paths": {
-        "train_images": "data/SICE/part1",
+        "train_images": "data/LOL/train_low",
         "eval_low": "data/LOL/eval15/low",
         "eval_high": "data/LOL/eval15/high",
         "unpaired": "data/unpaired",

@@ -32,7 +32,7 @@ python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablat
 python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/full.pt --output runs/eval.csv
 python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced
 python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
-python scripts/make_synthetic_data.py --input data/SICE/part1 --output data/synthetic
+python scripts/make_synthetic_data.py --input data/LOL/train_low --output data/synthetic
 LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api
 ```
 

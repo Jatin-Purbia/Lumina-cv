@@ -286,7 +286,7 @@ class TrainingConfig:
     Args:
         lr: float; default 1e-4. Units and bounds in INTERFACES.
         batch_size: int; default 8. Units and bounds in INTERFACES.
-        crop_size: int; default 256. Units and bounds in INTERFACES.
+        crop_size: int; default 128. Units and bounds in INTERFACES.
         epochs: int; default 100. Units and bounds in INTERFACES.
         optimizer: str; default "Adam". Units and bounds in INTERFACES.
         adam_beta1: float; default .9, first-moment decay in [0,1).
@@ -309,7 +309,7 @@ class TrainingConfig:
 
     lr: float = 1e-4
     batch_size: int = 8
-    crop_size: int = 256
+    crop_size: int = 128
     epochs: int = 100
     optimizer: str = "Adam"
     adam_beta1: float = 0.9
@@ -329,7 +329,7 @@ class DataPaths:
     """DataPaths fields and defaults; see INTERFACES config table.
 
     Args:
-        train_images: str; default "data/SICE/part1". Units and bounds in INTERFACES.
+        train_images: str; default "data/LOL/train_low". Units and bounds in INTERFACES.
         eval_low: str; default "data/LOL/eval15/low". Units and bounds in INTERFACES.
         eval_high: str; default "data/LOL/eval15/high". Units and bounds in INTERFACES.
         unpaired: str; default "data/unpaired". Units and bounds in INTERFACES.
@@ -344,7 +344,7 @@ class DataPaths:
         Project configuration contract, not a paper algorithm.
     """
 
-    train_images: str = "data/SICE/part1"
+    train_images: str = "data/LOL/train_low"
     eval_low: str = "data/LOL/eval15/low"
     eval_high: str = "data/LOL/eval15/high"
     unpaired: str = "data/unpaired"

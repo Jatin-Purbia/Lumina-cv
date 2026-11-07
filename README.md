@@ -8,81 +8,103 @@ core/   Python package (PyTorch model, training, inference, HTTP API) - see core
 web/    Next.js app: upload an image, enhance it, compare before/after - see web/README.md
 ```
 
-## Run locally
+Requirements: Python 3.10+, Node.js 22. Commands below are for Windows PowerShell; on
+macOS/Linux use `source .venv/bin/activate` to activate and `export NAME=value` instead of
+`$env:NAME = "value"`.
 
-Needs Python 3.10+ and Node.js 22.
+The app needs a trained model (`final.pt`). Steps 1-3 create one; the server (step 4) cannot
+enhance images without it. The server never downloads data or trains by itself.
 
-### 1. Backend (API server)
-
-Steps 1-3 are one-time setup; run them from the repo root.
-
-**Step 1. Go to `core` and create a virtual environment**
-
-```sh
-cd core
-python -m venv .venv
-```
-
-**Step 2. Activate it** (conda `base` users can skip this step and the `python -m venv` line, but still `cd core`)
+## 1. Set up the backend (once)
 
 ```powershell
-# Windows PowerShell (the leading .\ is required)
+cd core
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-# If it says scripts are disabled, run once: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-```sh
-# macOS / Linux / Git Bash
-source .venv/bin/activate        # Git Bash on Windows: source .venv/Scripts/activate
-```
-
-**Step 3. Install the package**
-
-```sh
 python -m pip install -e ".[dev]"
 ```
 
-**Step 4. Start the server**
+The leading `.\` is required. If PowerShell says scripts are disabled, run once:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Keep the venv activated for every
+`python` command below.
+
+## 2. Download the training data (once)
 
 ```powershell
-$env:LUMINA_CHECKPOINT = "C:/Desktop/Lumina-CV/core/checkpoints/full/final.pt"
-$env:LUMINA_PORT = "8001"          # optional; default is 8000
+python scripts/download_lol.py
+```
+
+This downloads the public [LOL dataset](https://daooshee.github.io/BMVC2018website/) (about 350 MB
+from a HuggingFace mirror) into `core/data/LOL/`: 485 low-light training images and 15 held-out
+low/normal pairs for evaluation. Check the dataset's terms before use (research and education);
+it is not stored in git. Running the script again does nothing if the data is already there.
+
+## 3. Train the model (once)
+
+```powershell
+python scripts/train.py --config configs/full.py --no-temporal --device cpu --epochs 60 --run-name lol
+```
+
+- Takes roughly an hour or more on a CPU (about 1.5 minutes per epoch on the machine this was
+  developed on). With a GPU use `--device cuda` and more epochs (the config default is 100).
+- `--no-temporal` skips the video-consistency part, which the photo app does not use and which
+  doubles the training time. Drop it to train the full model.
+- Output: `core/checkpoints/lol/final.pt` (plus `epoch_XXXX.pt` every 5 epochs), and logs in
+  `core/runs/lol/` (`metrics.csv`, `val_metrics.csv`). Resume with
+  `--resume checkpoints/lol/epoch_0030.pt`.
+- Other options: `python scripts/train.py --help`. Configs are Python files in `core/configs/`.
+
+## 4. Start the API server
+
+In the same terminal (venv activated, inside `core`):
+
+```powershell
+$env:LUMINA_CHECKPOINT = "checkpoints/lol/final.pt"
 python -m nta_zerodce.api
 ```
 
-A demo checkpoint trained on synthetic low-light images (40 epochs, CPU) is at that path on this machine; it is not stored in git and is not a quality model. Train your own as described under "Train a model" below. On macOS/Linux use
-`export LUMINA_CHECKPOINT=core/checkpoints/full/final.pt` instead of the first line.
-The API runs at http://127.0.0.1:8001 (stop with Ctrl+C). If you see "only one usage of each socket
-address", another program already uses that port: pick a different `LUMINA_PORT`.
+The API runs at http://127.0.0.1:8000 until you press Ctrl+C. Check it:
+http://127.0.0.1:8000/api/v1/health should show `"model_loaded": true`.
 
-### 2. Web app
+If it fails with "only one usage of each socket address", another program uses port 8000: set
+a different port with `$env:LUMINA_PORT = "8001"` and use the same address in step 5.
+
+## 5. Start the web app
 
 In a second terminal, from the repo root:
 
 ```powershell
 cd web
 npm ci
-$env:LUMINA_API_URL = "http://127.0.0.1:8001"   # must match LUMINA_PORT above
-npm run dev                                      # http://localhost:3000
+npm run dev
 ```
 
-The web app proxies `/api/v1/*` to `LUMINA_API_URL` (default `http://127.0.0.1:8000`). On
-macOS/Linux use `export` instead of `$env:`.
+If the API is not on port 8000, first run `$env:LUMINA_API_URL = "http://127.0.0.1:8001"`
+(matching `LUMINA_PORT`). Open http://localhost:3000, choose a photo, press Enhance and drag the
+divider to compare. Photos larger than about 2 megapixels are shrunk in the browser before upload;
+the API limits are listed in [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md).
 
-## Train a model
+## Command-line tools (optional)
 
-```sh
-cd core
-python scripts/train.py --config configs/full.py --run-name full     # writes checkpoints/full/final.pt
+Run from `core` with the venv activated:
+
+```powershell
+# enhance a folder of images
+python scripts/enhance.py --checkpoint checkpoints/lol/final.pt --input path\to\images --output runs\enhanced
+
+# metrics on the held-out LOL pairs (PSNR, SSIM, angular error)
+python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/lol/final.pt --output runs/eval.csv
+
+# ablation matrix (13 variants x 3 seeds; list the runs without training)
+python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations --dry-run
 ```
-
-Configs live in `core/configs/` as Python files. See [core/README.md](core/README.md) for data
-layout and options, and [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md) for the API and Docker image
-([core/Dockerfile](core/Dockerfile)).
 
 ## Tests
 
-```sh
-cd core && python -m pytest
-cd web  && npm test
+```powershell
+cd core; python -m pytest        # about 2,060 tests, CPU, no data or network needed
+cd ..\web; npm test
 ```
+
+More detail on the design, API and limits: [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md)
+and [core/docs/IMPLEMENTATION.md](core/docs/IMPLEMENTATION.md).

@@ -348,7 +348,7 @@ def test_load_baseline_and_full_match_flags() -> None:
     }
     assert base.training.lr == 1e-4 and isinstance(base.training.lr, float)
     assert base.model.eps == 1e-6 and base.training.adam_eps == 1e-8
-    assert base.paths.train_images == "data/SICE/part1"  # paths stay as written
+    assert base.paths.train_images == "data/LOL/train_low"  # paths stay as written
 
 
 def test_baseline_equals_schema_defaults() -> None:
