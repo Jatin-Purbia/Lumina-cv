@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ def color_loss(output: Tensor) -> Tensor:
         Baseline L_col = mean_batch sqrt(d_RG^4+d_RB^4+d_GB^4) with d_cd the difference of the
         per-image channel means. The square root uses a zero-safe derivative: where the radicand
         is exactly zero the value is zero and the gradient is zero, never NaN or infinity.
-        See docs/METHOD.md; baseline attribution [R1,R2].
+        See docs/ARCHITECTURE.md; baseline attribution [R1,R2].
 
     Raises:
         ValueError: If the output is not an RGB tensor (B,3,H,W).

@@ -1,8 +1,8 @@
 """FastAPI application factory for the Lumina CV enhancement API.
 
 ``create_app(settings)`` returns an app whose model is loaded once during the lifespan
-startup. The HTTP contract (docs/PLAN.md, "HTTP contract") is served under ``/api/v1``:
-``GET /health``, ``GET /options`` and ``POST /enhance``. See docs/API.md.
+startup. The HTTP contract (docs/ARCHITECTURE.md, "HTTP contract") is served under ``/api/v1``:
+``GET /health``, ``GET /options`` and ``POST /enhance``. See docs/ARCHITECTURE.md.
 """
 
 from __future__ import annotations

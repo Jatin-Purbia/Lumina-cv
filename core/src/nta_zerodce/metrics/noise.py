@@ -1,6 +1,6 @@
 """Flat-region noise proxy, not a perceptual quality guarantee.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

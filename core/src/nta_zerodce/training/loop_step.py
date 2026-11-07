@@ -14,9 +14,9 @@ Batch contract (all tensors on the model device, float32 RGB in [0,1], BCHW):
   input is ``noisy`` and ``target_sigma`` is the known pre-clipping sigma.
 * ``image1``, ``image2`` (B,3,H,W), ``backward_flow`` (B,2,H,W) and ``mask`` (B,1,H,W):
   required when ``flags.temporal``; ``backward_flow`` points from ``image2`` (current) to
-  ``image1`` (previous) as in docs/INTERFACES.md.
+  ``image1`` (previous) as in docs/ARCHITECTURE.md.
 
-See docs/METHOD.md (objective, gating, detach policy) and docs/ARCHITECTURE.md (loss table).
+See docs/ARCHITECTURE.md (objective, gating, detach policy, loss table).
 """
 
 from __future__ import annotations

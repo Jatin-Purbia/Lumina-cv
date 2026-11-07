@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ def smoothness_loss(A: Tensor) -> Tensor:
 
     Method:
         Baseline L_tv = 2*(mean(dx(A)^2)+mean(dy(A)^2)); the two directional means are taken
-        independently over their own element counts. See docs/METHOD.md; baseline attribution
+        independently over their own element counts. See docs/ARCHITECTURE.md; baseline attribution
         [R1,R2].
 
     Raises:

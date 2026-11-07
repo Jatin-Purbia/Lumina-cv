@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def chroma_loss(
         reflection-padded window average of c(x), taken after normalization and detached; the
         weights are smoothstep(low,high,Y(x)-noise*sigma), also detached. Loss is
         masked_mean_3(|c(o)-c_ref|, w) and is exactly zero (graph-connected) with no reliable
-        pixels. See docs/METHOD.md; extensions are project proposals.
+        pixels. See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If image and output shapes differ or sigma does not match their spatial size.

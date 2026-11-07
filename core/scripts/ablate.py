@@ -12,7 +12,7 @@ Each cell ``<output>/<run>/seed_<seed>/`` holds the resolved config, ``metrics.c
 interrupted cell resumes from its latest ``epoch_XXXX.pt``. ``<output>/summary.csv`` has one row
 per (run, seed, dataset, metric) mean. Every run inherits the base hyperparameters and differs
 only in flags and seed; ``--epochs`` changes the schedule for all runs and is meant for smoke
-runs only. See docs/EXPERIMENTS.md.
+runs only. See docs/ARCHITECTURE.md.
 """
 
 from __future__ import annotations

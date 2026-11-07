@@ -16,12 +16,14 @@ Needs Python 3.10+ and Node.js 22.
 # 1. API server (set LUMINA_CHECKPOINT to a trained final.pt)
 cd core
 python -m pip install -e ".[dev]"
-LUMINA_CHECKPOINT=path/to/final.pt python -m nta_zerodce.api   # http://127.0.0.1:8000
+LUMINA_CHECKPOINT=path/to/final.pt python -m nta_zerodce.api   
+# http://127.0.0.1:8000
 
 # 2. Web app (second terminal)
 cd web
 npm ci
-npm run dev                                                    # http://localhost:3000
+npm run dev                                                    
+# http://localhost:3000
 ```
 
 The web app proxies `/api/v1/*` to the server in `LUMINA_API_URL` (default
@@ -35,7 +37,7 @@ python scripts/train.py --config configs/full.py
 ```
 
 Configs live in `core/configs/` as Python files. See [core/README.md](core/README.md) for data
-layout and options, and [core/docs/API.md](core/docs/API.md) for the API and Docker image
+layout and options, and [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md) for the API and Docker image
 ([core/Dockerfile](core/Dockerfile)).
 
 ## Tests

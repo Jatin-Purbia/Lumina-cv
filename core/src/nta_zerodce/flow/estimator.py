@@ -1,6 +1,6 @@
 """Only owner of OpenCV optical flow; CPU boundary and displacement rescaling.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 
 OpenCV compatibility: the DIS (Dense Inverse Search) optical flow object is created by
 ``cv2.DISOpticalFlow.create(preset)`` (class API, OpenCV 4.5+ and 5.x) or, on older 4.x

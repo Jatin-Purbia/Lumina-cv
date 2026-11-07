@@ -1,6 +1,6 @@
 """Unpaired SICE training and paired LOL evaluation; DATA split rules.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 
 Public additions beyond INTERFACES: ``ImageDataset.set_epoch``, the keyword-only ``paths`` and
 ``seed`` constructor arguments, ``index_files``, ``scene_split`` and ``make_synthetic_images``.

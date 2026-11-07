@@ -1,4 +1,4 @@
-"""Flow, warp, reliability-mask, scene-cut and temporal-loss conventions (TESTING.md recipe).
+"""Flow, warp, reliability-mask, scene-cut and temporal-loss conventions (docs/ARCHITECTURE.md recipe).
 
 Analytic affine flows are used for the deterministic assertions; the OpenCV DIS adapter
 is covered by separate tolerance-based tests on a visible synthetic texture.

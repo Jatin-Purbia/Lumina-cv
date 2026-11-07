@@ -1,4 +1,4 @@
-"""Ablation matrix parsing, validation and expansion (docs/EXPERIMENTS.md, INTERFACES).
+"""Ablation matrix parsing, validation and expansion (docs/ARCHITECTURE.md).
 
 ``configs/ablation_matrix.py`` (``MATRIX``; a YAML file is also accepted) has exactly three keys::
 
@@ -12,7 +12,7 @@ Every run inherits all base hyperparameters and overrides only its flags and the
 matrix must contain the rows ``baseline``, ``full``, each single extension (``noise_only``,
 ``edge_only``, ``chroma_only``, ``adaptive_only``, ``temporal_only``) and each leave-one-out row
 (``loo_noise``, ``loo_edge``, ``loo_chroma``, ``loo_adaptive``, ``loo_temporal``) with exactly
-the flags EXPERIMENTS.md assigns them; ``noise_denoise`` is validated when present.
+the flags docs/ARCHITECTURE.md assigns them; ``noise_denoise`` is validated when present.
 """
 
 from __future__ import annotations
@@ -189,7 +189,7 @@ def parse_matrix(
         if name in table and dataclasses.asdict(flags) != table[name]:
             raise ValueError(
                 f"run {name!r} flags {dataclasses.asdict(flags)} differ from the protocol row "
-                f"{table[name]} (docs/EXPERIMENTS.md)"
+                f"{table[name]} (docs/ARCHITECTURE.md)"
             )
     return base, tuple(int(s) for s in seeds), tuple(runs)
 

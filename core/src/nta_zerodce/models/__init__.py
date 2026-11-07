@@ -1,1 +1,1 @@
-"""models namespace; contracts live in docs/INTERFACES.md. No eager execution."""
+"""models namespace; contracts live in docs/ARCHITECTURE.md. No eager execution."""

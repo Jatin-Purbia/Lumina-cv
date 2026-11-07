@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 
 SPLIT_VAL_FRACTION = 0.1
 SPLIT_SEED = 17
-"""Scene split constants fixed across training seeds (docs/DATA.md, docs/EXPERIMENTS.md)."""
+"""Scene split constants fixed across training seeds (docs/ARCHITECTURE.md)."""
 
 _STREAM_SHUFFLE = 0
 _STREAM_BATCH = 1

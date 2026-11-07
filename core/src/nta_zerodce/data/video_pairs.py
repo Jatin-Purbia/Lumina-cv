@@ -1,6 +1,6 @@
 """Adjacent real-video pairs; flow is delegated exclusively to flow/estimator.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

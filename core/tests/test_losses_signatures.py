@@ -1,6 +1,6 @@
 """Loss contract assertions: scalar/non-negative/differentiable, analytic values, masks, gates.
 
-Seeded synthetic CPU tensors only. Equations: docs/METHOD.md; strategy: docs/TESTING.md.
+Seeded synthetic CPU tensors only. Equations: docs/ARCHITECTURE.md.
 The temporal loss and metrics are owned and tested elsewhere (flow/metrics tests).
 """
 

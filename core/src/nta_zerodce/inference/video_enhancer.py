@@ -1,6 +1,6 @@
 """Stateful video inference; flow warp of curves, masks and scene-cut resets.
 
-See docs/INTERFACES.md and docs/METHOD.md (extension 5) for the normative contract.
+See docs/ARCHITECTURE.md (extension 5) for the normative contract.
 
 Per frame the enhancer estimates full-resolution maps ``(A_t, sigma_t)``, then, unless history
 is unusable, blends the previous *smoothed* curve map warped by the backward (current to

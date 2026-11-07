@@ -1,6 +1,6 @@
 """Auxiliary per-pixel noise-standard-deviation head.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

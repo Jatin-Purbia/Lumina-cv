@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def noise_loss(predicted_sigma: Tensor, target_sigma: Tensor) -> Tensor:
 
     Method:
         Extension 1; L_noise = mean |sigma_hat - sigma_target| (target detached).
-        See docs/METHOD.md; extensions are project proposals.
+        See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If the shapes differ.
@@ -45,7 +45,7 @@ def invariance_loss(noisy_output: Tensor, teacher_output: Tensor) -> Tensor:
         Scalar float32 nonnegative differentiable Tensor on the input device.
 
     Method:
-        Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/METHOD.md; extensions are project
+        Extension 1; mean |E(x+n)-stopgrad(E(x))|. See docs/ARCHITECTURE.md; extensions are project
         proposals.
 
     Raises:
@@ -67,7 +67,7 @@ def fidelity_loss(output: Tensor, teacher_output: Tensor) -> Tensor:
 
     Method:
         Extension 1; L1 synthetic fidelity mean |E(x+n).enhanced - stopgrad(E(x).enhanced_raw)|;
-        requires denoise, uses no real high-light GT. See docs/METHOD.md; extensions are project
+        requires denoise, uses no real high-light GT. See docs/ARCHITECTURE.md; extensions are project
         proposals.
 
     Raises:

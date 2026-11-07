@@ -1,6 +1,6 @@
 """Structured CSV experiment logs with a stable schema.
 
-See docs/EXPERIMENTS.md reporting rules: train and eval columns are never silently mixed.
+See docs/ARCHITECTURE.md reporting rules: train and eval columns are never silently mixed.
 Each CSV file has one fixed column set (``step`` plus the metric names of its first record);
 use separate files for training and validation records.
 """

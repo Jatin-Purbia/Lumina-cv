@@ -7,7 +7,7 @@ Examples (see the README):
     python scripts/enhance.py --checkpoint checkpoints/full.pt --input clip.mp4 --output clip_enhanced.mp4
     python scripts/enhance.py --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

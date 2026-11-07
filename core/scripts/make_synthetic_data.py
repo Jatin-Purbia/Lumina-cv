@@ -17,7 +17,7 @@ stores the forward and inverse 2x3 affine matrices in pixel coordinates, the noi
 (a, b) of both frames, the flicker factor, mask coverage, seed and sampler, so analytic flow can
 be recomputed. Generated data are private local samples: do not commit or redistribute them.
 
-See docs/DATA.md and docs/INTERFACES.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

@@ -4,7 +4,7 @@ Adds the common INTERFACES flags to an argparse parser, maps them to dotted conf
 (None means "not supplied", never false), resolves a validated Config and converts expected
 failures into one-line messages with stable exit codes. Importing this module has no side effects.
 
-See docs/INTERFACES.md for the normative CLI contract.
+See docs/ARCHITECTURE.md for the normative CLI contract.
 """
 
 from __future__ import annotations

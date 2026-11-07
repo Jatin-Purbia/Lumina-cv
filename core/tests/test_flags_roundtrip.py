@@ -1,6 +1,6 @@
 """Flag combinations, YAML round trips and CLI precedence; TESTING strategy.
 
-See docs/INTERFACES.md (CLI and checkpoint contracts) and docs/TESTING.md. Checkpoint-level flag
+See docs/ARCHITECTURE.md (CLI and checkpoint contracts). Checkpoint-level flag
 rejection (noise/light/iteration mismatch) lives with the checkpoint implementation; here the
 config-side halves are covered: schema_version gating and exact flag/weight restoration.
 """

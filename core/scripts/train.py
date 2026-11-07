@@ -10,7 +10,7 @@ Examples (documented in README.md)::
 Outputs go to ``<paths.run_dir>/<run name>/`` (config, metrics.csv, val_metrics.csv) and
 ``<paths.checkpoint_dir>/<run name>/`` (epoch_XXXX.pt, final.pt); the run name is derived from
 the flags and the seed (``nta_zerodce.training.trainer.default_run_name``) unless ``--run-name``
-is given. See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+is given. See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

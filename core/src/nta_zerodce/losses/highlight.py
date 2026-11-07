@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def highlight_loss(image: Tensor, output: Tensor, threshold: float = 0.8) -> Ten
         Extension 4; masked_mean_1(relu(Y(o)-Y(x))^2, m_hi) with the detached mask
         m_hi=1[Y(x)>threshold]. An empty mask yields exactly zero that is still connected to the
         output graph (numerator sum(m*v) with m=0), so backward gives finite zero gradients.
-        See docs/METHOD.md; extensions are project proposals.
+        See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If image and output shapes differ.

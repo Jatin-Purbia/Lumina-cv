@@ -1,1 +1,1 @@
-"""nta_zerodce namespace; contracts live in docs/INTERFACES.md. No eager execution."""
+"""nta_zerodce namespace; contracts live in docs/ARCHITECTURE.md. No eager execution."""

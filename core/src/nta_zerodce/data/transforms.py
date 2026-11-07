@@ -1,6 +1,6 @@
 """Shared geometric augmentation and RGB normalization; DATA preprocessing.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 
 Public additions beyond INTERFACES (additive helpers shared by the datasets):
 ``random_crop`` (single-tensor crop with the same origin rule as ``paired_crop``) and

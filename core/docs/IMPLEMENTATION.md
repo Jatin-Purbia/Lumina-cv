@@ -1,27 +1,89 @@
-# Implementation status
+# Implementation
 
-The original M0 scaffold is now an executable core implementation. The web home route remains intentionally blank; no API server or browser integration has been added.
+What is implemented, how to run it, and its limits. Design and math are in
+[ARCHITECTURE](ARCHITECTURE.md).
 
-## Implemented
+## Components
 
-- Seven-convolution baseline and depthwise light estimator, eight plus-sign curve iterations, full-resolution curve upsampling, bounded noise head and residual denoiser.
-- Four baseline losses and the five documented feature groups, with detached teachers/targets/gain/masks, adaptive exposure replacement, finite scalar logging and gradient clipping.
-- Strict typed YAML validation and explicit-false CLI precedence, sorted image/video manifests, EXIF-aware RGB IO, shared crops, per-channel heteroscedastic noise and analytic affine pairs.
-- DIS bidirectional flow, pixel-coordinate differentiable warping, current-domain reliability masks, histogram scene cuts, detached curve/output history and stream/shape resets.
-- Adam training with a fixed scene split, content-aware provenance, loss CSVs, atomic versioned checkpoints, optimizer/RNG resume and incompatible-state rejection.
-- All five CLI commands: training, image/video/webcam enhancement, paired/unpaired/video evaluation, fixed-matrix ablations and local synthetic export.
-- PSNR, Gaussian-window SSIM, angular error, input-selected flat-region noise proxy, clipping and masked temporal error.
+- **Models**: seven-conv DCE-Net and depthwise light variant, eight curve iterations,
+  noise head, residual denoiser.
+- **Losses**: four baseline losses plus edge, chroma, adaptive exposure, highlight, noise,
+  invariance, fidelity and temporal, with detached targets and masks.
+- **Data**: sorted image/video manifests, EXIF-aware RGB IO, shared crops, per-channel
+  heteroscedastic noise, analytic affine pairs with flow and flicker.
+- **Flow**: bidirectional DIS, differentiable pixel-coordinate warp, reliability masks,
+  histogram scene-cut detection.
+- **Training**: Adam, fixed scene split, loss CSV logging, atomic versioned checkpoints,
+  optimizer/RNG resume, rejection of incompatible state.
+- **Inference**: image, video and webcam enhancers; checkpoint loader.
+- **Metrics**: PSNR, Gaussian-window SSIM, angular error, flat-region noise proxy, clipping,
+  masked temporal error.
+- **API**: FastAPI server with upload limits and JSON errors. **Web**: Next.js upload and
+  before/after demo with a runtime API proxy.
 
-## Verification and limits
+## Commands
 
-The CPU suite exercises generated low-light data, numerical identities and gradients, affine conventions, temporal state, checkpoint/RNG roundtrips, a 30-step tiny baseline overfit and a local train/save/load/CLI-enhance/evaluate cycle. It also roundtrips a short encoded video. See [TESTING](TESTING.md) for commands and test-specific settings.
+Run from `core/` after `python -m pip install -e ".[dev]"`.
 
-These checks do not satisfy the real-data exit criteria of M1–M5. No curated SICE/LOL data, pretrained or research-trained weights, real-camera calibration, held-out visual grids, GPU performance measurements, camera/display validation, 39-run ablation results, or completed research report are supplied. The [experiment tables](EXPERIMENTS.md) and [latency tables](REAL_TIME.md) remain empty. No baseline parity, quality improvement, or real-time claim is made.
+```sh
+python scripts/train.py --config configs/baseline.py
+python scripts/train.py --config configs/full.py --resume checkpoints/full_s17/epoch_0010.pt
+python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations
+python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/full.pt --output runs/eval.csv
+python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced
+python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --webcam 0 --light --curve-scale 0.5
+python scripts/make_synthetic_data.py --input data/SICE/part1 --output data/synthetic
+LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api
+```
 
-The loader cannot infer exposure labels or permissions: curate low-light inputs and scene/session splits before training. A directory with one scene has no held-out scene; use multiple scenes for research. Relative paths resolve from core/. Images smaller than the configured training crop fail explicitly. Checkpoints use trusted-local PyTorch serialization; never load untrusted files. CUDA grid-sampling backward may be nondeterministic despite seeded execution.
+Every training flag has an explicit pair (`--noise/--no-noise`, `--edge/--no-edge`, ...); an
+explicit `--no-x` always overrides the config. Run `--help` on any script for all options.
 
-## Runtime artifacts
+## Artifacts
 
-Training writes `config.yaml`, `split.json`, `provenance.json`, `metrics.csv`, `last.pt`, and periodic epoch checkpoints to the configured local directories. Resume requires the identical resolved experiment and unchanged dataset hashes. Separate run/checkpoint directories prevent mixing objectives or seeds.
+- Training writes `config.yaml`, `split.json`, `provenance.json`, `metrics.csv`, `last.pt` and
+  periodic epoch checkpoints. Resume requires the identical resolved config and unchanged
+  dataset hashes.
+- Checkpoint format v1 holds model, optimizer, resolved config, RNG state and provenance;
+  unknown versions, extra keys and architecture mismatches are rejected.
+- Evaluation CSVs keep per-sample IDs and mask coverage.
+- Synthetic export stores preview PNGs, `pair.pt` (unquantized frames, flows, masks, affine
+  matrix, flicker, noise coefficients) and a JSON source/config record.
 
-Synthetic export stores preview PNGs, `pair.pt` with unquantized frames, analytic flows/masks, affine matrix, flicker and applied noise coefficients, and a JSON source/config record. Evaluation CSVs retain individual sample IDs and mask coverage; aggregation and report conclusions require the full experimental protocol.
+## Testing
+
+```sh
+python -m pytest                      # about 2,060 tests, CPU only, no data or network
+python -m ruff check . && python -m ruff format --check . && python -m mypy
+cd ../web && npm test && npm run typecheck && npm run lint && npm run build
+```
+
+Tests build tiny synthetic images, videos and checkpoints in temp directories. They cover
+numerical identities and gradients, curve and affine conventions, temporal state and resets,
+checkpoint and RNG round trips, a 30-step baseline overfit, an end-to-end train, enhance,
+evaluate cycle (CLI and API produce identical pixels), the API contract and error codes, and
+config schema and ablation matrix validation. Known failures on Windows: path handling in
+`test_resolve_path`, plus `test_malformed_multipart_is_invalid_image` and
+`test_scripts_run_as_programs`; `tests/test_metrics.py` needs a NumPy build compatible with
+the installed SciPy/OpenCV.
+
+## Limits
+
+- No trained weights, benchmark results or ablation results are included. No quality or
+  real-time claim is made; the 30 fps / 720p budget (capture 3 ms, resize 2, estimation 10,
+  DIS 8, warp and curves 4, denoise 3, output 3) is a design target to be measured.
+- Loss weights and thresholds are untuned starting values. Synthetic noise is a Gaussian
+  approximation; added-noise `sigma` is not a camera-noise label.
+- The loader cannot infer exposure labels or permissions: curate low-light inputs and
+  scene/session splits. Images smaller than the training crop fail. Training needs `H, W`
+  divisible by 16; inference needs at least 16.
+- Checkpoints use trusted-local PyTorch serialization; never load untrusted files. CUDA
+  grid-sampling backward can be nondeterministic.
+- The API has no authentication; add TLS, authentication and rate limiting in front of it.
+
+## Metrics for evaluation
+
+PSNR and SSIM (data range 1, 11x11 Gaussian window, sigma 1.5) and angular error on paired
+LOL; noise proxy, clipping fraction and temporal error on unpaired and video sets. Report
+mean and standard deviation over the three seeds, with held-out failure cases. Do not tune on
+the LOL evaluation split.

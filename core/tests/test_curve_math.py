@@ -1,6 +1,6 @@
 """Curve-math assertions for apply_curves; TESTING strategy, METHOD baseline curve.
 
-All inputs are seeded synthetic CPU tensors. See docs/METHOD.md for the equations.
+All inputs are seeded synthetic CPU tensors. See docs/ARCHITECTURE.md for the equations.
 """
 
 from __future__ import annotations

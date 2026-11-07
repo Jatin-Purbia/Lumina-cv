@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def spatial_loss(image: Tensor, output: Tensor, patch_size: int = 4) -> Tensor:
         (1/K) * sum over regions i and their valid neighbours j of (|v_i-v_j|-|u_i-u_j|)^2.
         Every unordered neighbour pair is therefore visited from both ends (factor two, the
         literal reading of the METHOD sum); boundary regions have fewer neighbours and no padded
-        pairs are penalized. See docs/METHOD.md; baseline attribution [R1,R2].
+        pairs are penalized. See docs/ARCHITECTURE.md; baseline attribution [R1,R2].
 
     Raises:
         ValueError: If the inputs are not RGB tensors of equal shape or are smaller than a patch.

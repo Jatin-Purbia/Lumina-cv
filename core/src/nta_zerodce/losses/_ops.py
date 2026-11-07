@@ -2,7 +2,7 @@
 
 Every function here is stateless, device-agnostic and free of IO: it never moves tensors,
 reads configuration or touches a registry. Helpers follow the notation block of
-docs/METHOD.md (``Y``, ``P_k``, ``masked_mean_C``, ``smoothstep``, stride-1 average pooling
+docs/ARCHITECTURE.md (``Y``, ``P_k``, ``masked_mean_C``, ``smoothstep``, stride-1 average pooling
 with reflection padding). Written from the published mathematics only.
 """
 

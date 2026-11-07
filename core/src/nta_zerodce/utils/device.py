@@ -1,6 +1,6 @@
 """Explicit device selection without hidden tensor transfers.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

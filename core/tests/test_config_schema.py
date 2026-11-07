@@ -1,6 +1,6 @@
 """Config schema behaviour (bounds, types, YAML IO, paths) plus active collection audits.
 
-See docs/INTERFACES.md (Schema bounds and units) and docs/TESTING.md. The module-level audits at
+See docs/ARCHITECTURE.md (Schema bounds and units). The module-level audits at
 the bottom run at collection time and must keep passing.
 """
 
@@ -908,7 +908,7 @@ for row in matrix["runs"]:
     assert row["flags"].keys() == defaults["flags"].keys()
     assert not row["flags"]["denoise"] or row["flags"]["noise_aware"]
 
-# M0 stub-only AST audit retired: implementation has begun (docs/PLAN.md).
+# M0 stub-only AST audit retired: implementation has begun (docs/ARCHITECTURE.md).
 # Every public function must still have a docstring and full annotations.
 for source in [*(ROOT / "src").rglob("*.py"), *(ROOT / "scripts").glob("*.py")]:
     for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):

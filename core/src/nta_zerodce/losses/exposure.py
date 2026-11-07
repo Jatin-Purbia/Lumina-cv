@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def exposure_loss(output: Tensor, target: float = 0.6, patch_size: int = 16) -> 
     Method:
         Baseline L_exp = mean (P_k(Y(o)) - target)^2, the reference-profile squared error (the
         paper's absolute variant mean|q-target| is documented in METHOD but not used here).
-        See docs/METHOD.md; baseline attribution [R1,R2].
+        See docs/ARCHITECTURE.md; baseline attribution [R1,R2].
 
     Raises:
         ValueError: If the output is not RGB or is smaller than one patch.

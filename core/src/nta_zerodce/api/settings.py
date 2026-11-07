@@ -1,6 +1,6 @@
 """Server settings read from environment variables.
 
-Invalid values fail at startup with a message that names the variable. See docs/API.md for the
+Invalid values fail at startup with a message that names the variable. See docs/ARCHITECTURE.md for the
 full table.
 """
 

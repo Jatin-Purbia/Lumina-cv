@@ -2,7 +2,7 @@
 
 Public helpers: ``Config.validate``, ``load_config`` (strict, complete YAML), ``parse_config``
 (structure only), ``save_config``, ``check_paths``, ``workspace_root`` and ``resolve_path``.
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -878,7 +878,7 @@ def _leaf_names() -> list[str]:
     return names
 
 
-def load_python_mapping(path: Path, variable: str) -> Any:
+def load_python_mapping(path: Path, variable: str) -> Any:  # noqa: ANN401
     """Import a Python config module and return its module-level ``variable``.
 
     Args:

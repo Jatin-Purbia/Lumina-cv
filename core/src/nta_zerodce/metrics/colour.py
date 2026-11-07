@@ -1,6 +1,6 @@
 """Reference chromaticity/angular error and colour proxy reporting.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations

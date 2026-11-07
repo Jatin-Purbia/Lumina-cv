@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ def adaptive_targets(
         Extension 4: with Yp=P_k(Y(x)) and sigma_p=P_k(sigma),
         T = target + (Yp-target)*smoothstep(low,high,Yp) - penalty*clamp(sigma_p/noise_scale,0,1).
         Neither the image nor sigma receives gradient, so the loss cannot lower targets by
-        inflating sigma. See docs/METHOD.md; extensions are project proposals.
+        inflating sigma. See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If shapes disagree, noise_scale is not positive or low >= high.
@@ -68,7 +68,7 @@ def adaptive_exposure_loss(output: Tensor, targets: Tensor, patch_size: int = 16
 
     Method:
         Extension 4; mean squared pooled luminance error mean (P_k(Y(o))-T)^2, replaces L_exp.
-        Targets are detached defensively. See docs/METHOD.md; extensions are project proposals.
+        Targets are detached defensively. See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If the targets do not match the pooled output shape.

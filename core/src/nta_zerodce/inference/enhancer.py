@@ -1,6 +1,6 @@
 """Still-image enhancement with optional downscaled curve estimation.
 
-See docs/REAL_TIME.md: only sigma and the curve maps are estimated at reduced size. They are
+See docs/ARCHITECTURE.md: only sigma and the curve maps are estimated at reduced size. They are
 upsampled bilinearly (``align_corners=False``) and the eight curves are applied to the original
 full-resolution RGB, so the final image is never a resized result.
 """

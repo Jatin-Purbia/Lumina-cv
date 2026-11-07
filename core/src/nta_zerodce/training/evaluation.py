@@ -1,7 +1,7 @@
 """Checkpoint evaluation: paired, unpaired and held-out video metrics as long-format rows.
 
 Used by ``scripts/evaluate.py`` and ``scripts/ablate.py``. Every metric value is one row of the
-CSV schema of docs/EXPERIMENTS.md::
+CSV schema of docs/ARCHITECTURE.md::
 
     run, seed, dataset, sample_id, metric, value, mask_coverage, input_clipping
 
@@ -22,7 +22,7 @@ The noise proxies use the Immerkaer estimator on a flat region chosen from the i
 same mask for input and output): pixels whose lightly blurred Sobel gradient magnitude is at most
 ``FLAT_GRADIENT_THRESHOLD``. The threshold is an a-priori evaluation constant, not tuned on any
 result; ``mask_coverage`` of those rows reports the selected fraction. Clipping uses Y >= 0.99.
-Metrics are proxies (docs/EXPERIMENTS.md caveats), not quality certificates.
+Metrics are proxies (docs/ARCHITECTURE.md caveats), not quality certificates.
 """
 
 from __future__ import annotations
@@ -99,7 +99,7 @@ class AggregateRow:
 def heldout_video_dir(video_dir: str | Path) -> Path | None:
     """Locate the held-out clip directory belonging to ``paths.video_dir``.
 
-    docs/DATA.md splits videos into ``videos/train``, ``videos/val`` and ``videos/test`` by
+    docs/ARCHITECTURE.md splits videos into ``videos/train``, ``videos/val`` and ``videos/test`` by
     session. If ``video_dir`` itself is named ``val`` or ``test`` it is used as given;
     otherwise the sibling ``test`` and then ``val`` directory is used. Training clips are never
     evaluated.
@@ -494,7 +494,7 @@ def aggregate(rows: list[Row]) -> list[AggregateRow]:
     Returns:
         One AggregateRow per pair; ``count`` is the number of rows, ``mean`` ignores NaN and
         infinite samples (NaN when none are finite). This is a per-sample mean; the experiment
-        protocol aggregates by scene and then by seed (docs/EXPERIMENTS.md).
+        protocol aggregates by scene and then by seed (docs/ARCHITECTURE.md).
     """
     groups: dict[tuple[str, str], list[float]] = {}
     for row in rows:

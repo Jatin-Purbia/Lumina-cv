@@ -1,6 +1,6 @@
 """Checkpoint format v1: model, optimizer, resolved config, RNG and provenance.
 
-See docs/INTERFACES.md ("CLI and checkpoint contracts"). Checkpoints are trusted local files
+See docs/ARCHITECTURE.md ("CLI and checkpoint contracts"). Checkpoints are trusted local files
 loaded on CPU with ``weights_only=True`` and then moved by the caller; no network loading.
 Unknown format or schema versions, unexpected keys, and architecture mismatches are rejected
 instead of being loaded silently.

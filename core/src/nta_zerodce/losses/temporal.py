@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def temporal_loss(
         w = mask * in_bounds(b). Gradients reach both outputs; the flow and the mask are
         constants (detached inside). An empty mask (sum(w)=0) gives exactly 0 that is still
         connected to the autograd graph of the outputs (zero gradients, no NaN). See
-        docs/METHOD.md; baseline attribution [R1,R2], extensions are project proposals.
+        docs/ARCHITECTURE.md; baseline attribution [R1,R2], extensions are project proposals.
 
     Raises:
         ValueError: Outputs are not same-shape (B,3,H,W) tensors, flow/mask shapes do not

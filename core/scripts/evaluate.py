@@ -11,7 +11,7 @@ override it (an architecture mismatch with the checkpoint is rejected). ``--curv
 inference curve scale. Dataset directories come from ``paths.eval_low``/``eval_high``/
 ``unpaired``/``video_dir``; missing optional sets are skipped with a notice and the command fails
 with exit code 2 only when none exists. CSV columns and metric definitions:
-``nta_zerodce.training.evaluation`` and docs/EXPERIMENTS.md.
+``nta_zerodce.training.evaluation`` and docs/ARCHITECTURE.md.
 """
 
 from __future__ import annotations

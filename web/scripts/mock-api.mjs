@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Mock of the Lumina CV HTTP API (contract: core/docs/PLAN.md, "HTTP contract").
+ * Mock of the Lumina CV HTTP API (contract: core/docs/ARCHITECTURE.md, "HTTP contract").
  * Dependency-free; for developing the web UI without the Python server.
  *
  * LIMITATIONS (read before relying on this):

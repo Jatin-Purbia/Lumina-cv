@@ -1,6 +1,6 @@
 """Capture loop contracts; decode/capture may use OpenCV but not flow APIs.
 
-See docs/INTERFACES.md, docs/REAL_TIME.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 
 The loop is fully testable without a camera or a display: pass ``capture_factory`` (any object
 with ``read()``, ``release()`` and ``isOpened()``) and ``show=False``.

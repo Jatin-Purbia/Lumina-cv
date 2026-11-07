@@ -1,6 +1,6 @@
 """Pure tensor losses/targets; no IO, OpenCV, optimizer or registry side effects.
 
-See docs/INTERFACES.md and docs/METHOD.md for the normative contract.
+See docs/ARCHITECTURE.md for the normative contract.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def edge_loss(
         Sobel kernels divided by 8 and reflect padding. d_in=stopgrad(D(s)), d_out=D(Y(o)),
         w=stopgrad(clamp((d_in-noise_multiplier*sigma)/(d_in+eps),0,1)) and
         L=masked_mean_1(|d_out-stopgrad(gain*d_in)|, w). Sigma, gain, input and weights carry no
-        gradient. See docs/METHOD.md; extensions are project proposals.
+        gradient. See docs/ARCHITECTURE.md; extensions are project proposals.
 
     Raises:
         ValueError: If image and output shapes differ or sigma/gain are not (B,1,H,W).
