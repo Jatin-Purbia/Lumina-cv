@@ -25,8 +25,9 @@ python -m pip install -e ".[dev]"      # run after activating the venv (below)
 Activate the virtual environment (skip if you use conda/base and already installed the package):
 
 ```powershell
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
+# Windows PowerShell (the leading .\ is required)
+.\.venv\Scripts\Activate.ps1
+# If it says scripts are disabled, run once: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 ```sh
