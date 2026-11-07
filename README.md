@@ -45,11 +45,12 @@ python -m pip install -e ".[dev]"
 **Step 4. Start the server**
 
 ```powershell
-$env:LUMINA_CHECKPOINT = "C:/path/to/final.pt"
+$env:LUMINA_CHECKPOINT = "C:\Desktop\Lumina-CV\core\checkpointsullinal.pt"
 python -m nta_zerodce.api
 ```
 
-On macOS/Linux use `export LUMINA_CHECKPOINT=path/to/final.pt` instead of the first line.
+This file is created by training (see "Train a model" below). On macOS/Linux use
+`export LUMINA_CHECKPOINT=core/checkpoints/full/final.pt` instead of the first line.
 The API runs at http://127.0.0.1:8000 (stop with Ctrl+C).
 
 ### 2. Web app
@@ -69,7 +70,7 @@ The web app proxies `/api/v1/*` to the server in `LUMINA_API_URL` (default
 
 ```sh
 cd core
-python scripts/train.py --config configs/full.py
+python scripts/train.py --config configs/full.py --run-name full     # writes checkpoints/full/final.pt
 ```
 
 Configs live in `core/configs/` as Python files. See [core/README.md](core/README.md) for data
