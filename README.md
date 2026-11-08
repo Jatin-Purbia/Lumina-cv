@@ -63,9 +63,15 @@ python scripts/train.py --config configs/full.py --no-temporal --device cpu --ep
 In the same terminal (venv activated, inside `core`):
 
 ```powershell
-$env:LUMINA_CHECKPOINT = "checkpoints/lol/final.pt"
+copy .env.example .env
 python -m nta_zerodce.api
 ```
+
+`.env` (gitignored) lists every checkpoint in `checkpoints/` with one `LUMINA_CHECKPOINT=` line
+active and the rest commented out. To serve a different model, move the `#` to another line and
+restart the API. The default is `checkpoints/lol/final.pt`. A variable already set in your shell
+(`$env:LUMINA_CHECKPOINT = "..."`) takes precedence over `.env`. Without any checkpoint the API
+starts but `/enhance` answers 503.
 
 The API runs at http://127.0.0.1:8000 until you press Ctrl+C. Check it:
 http://127.0.0.1:8000/api/v1/health should show `"model_loaded": true`.
