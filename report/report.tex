@@ -245,7 +245,7 @@ Ours, epoch 35 & 16.19 & 0.593 & 7.42 & 0.481 & 0.000 & 0.021\\
 Ours, epoch 40 & 16.58 & 0.591 & 7.29 & 0.469 & 0.000 & 0.021\\
 \bottomrule
 \end{tabular}
-\caption{Held-out LOL results (mean over 15 image pairs; per-image standard deviations are in Fig.~\ref{fig:sweep} and \code{reproduce/results.json}). The mean brightness of the ground-truth references is 0.451. Best value per column among all rows in bold except the angular error, where bold marks the best of our models.}
+\caption{Held-out LOL results (mean over 15 image pairs; per-image standard deviations are in Fig.~\ref{fig:sweep}). The mean brightness of the ground-truth references is 0.451. Best value per column among all rows in bold except the angular error, where bold marks the best of our models.}
 \label{tab:sweep}
 \end{table}
 
@@ -400,7 +400,7 @@ Rahul Ahuja & B23CH1037\\
 \end{center}
 
 \section*{Reproducing the numbers}
-All figures and tables in Sec.~4 were produced by running the committed checkpoints in de{core/checkpoints/} on the 15 LOL evaluation pairs in de{core/data/LOL/eval15/} (CPU, full resolution). The training-curve figures read de{core/runs/*/metrics.csv} and de{val_metrics.csv}.
+All figures and tables in Sec.~4 were produced by running the committed checkpoints in \code{core/checkpoints/} on the 15 LOL evaluation pairs in \code{core/data/LOL/eval15/} (CPU, full resolution). The training-curve figures read \code{core/runs/*/metrics.csv} and \code{val\_metrics.csv}.
 
 \begin{thebibliography}{9}
 \bibitem{zerodce} C.~Guo, C.~Li, J.~Guo, C.~C.~Loy, J.~Hou, S.~Kwong, R.~Cong. Zero-Reference Deep Curve Estimation for Low-Light Image Enhancement. \emph{CVPR}, 2020.
