@@ -13,8 +13,9 @@ What is implemented, how to run it, and its limits. Design and math are in
   heteroscedastic noise, analytic affine pairs with flow and flicker.
 - **Flow**: bidirectional DIS, differentiable pixel-coordinate warp, reliability masks,
   histogram scene-cut detection.
-- **Training**: Adam, fixed scene split, loss CSV logging, atomic versioned checkpoints,
-  optimizer/RNG resume, rejection of incompatible state.
+- **Training**: Adam, fixed scene split, loss CSV logging (plus per-step `brightness`/`clipped`
+  over-brightening diagnostics), atomic versioned checkpoints, optimizer/RNG resume, rejection of
+  incompatible state.
 - **Inference**: image, video and webcam enhancers; checkpoint loader.
 - **Metrics**: PSNR, Gaussian-window SSIM, angular error, flat-region noise proxy, clipping,
   masked temporal error.
@@ -68,12 +69,25 @@ the installed SciPy/OpenCV.
 
 ## Limits
 
-- **Train briefly.** On LOL (`configs/full.py`, no temporal, CPU) the model over-brightens as
-  training continues: held-out LOL PSNR rises (10.7 at epoch 10, 13.5 at 15, 16.6 at 40) but a
-  moderately dark photo is blown out from epoch 15 and washed out by 25. The shipped recipe uses 10
-  epochs. A more varied training set (adding normal-light and darkened copies) did not fix it.
-  Fixing this properly needs loss/weight tuning (for example a lower exposure target) or a
-  validation set of ordinary photos for early stopping; neither has been done.
+- **Train briefly, and watch the brightening-drift diagnostics.** On LOL (`configs/full.py`, no
+  temporal, CPU) the model over-brightens as training continues: held-out LOL PSNR rises (10.7 at
+  epoch 10, 13.5 at 15, 16.6 at 40, with the checkpoints shipped under `checkpoints/lol_dark_only/`
+  trained with `loss.exposure_target=0.6`) but a moderately dark photo is blown out from epoch 15
+  and washed out by 25. The shipped `lol/final.pt` recipe uses 10 epochs as the workaround. A more
+  varied training set (adding normal-light and darkened copies) did not fix it.
+
+  Two changes attempt to fix this properly, neither retrained or re-evaluated yet:
+  `loss.exposure_target`'s default was lowered from `0.6` to `0.5` (`training/config.py`,
+  `configs/baseline.py`, `configs/full.py`), following this doc's own earlier suggestion that a
+  lower exposure target should reduce the pressure toward over-brightening. And
+  `train_step`/`validation_step`
+  (`training/loop_step.py`) now log `brightness` (mean output intensity) and `clipped`
+  (near-saturated pixel fraction) on every step, so the drift this limit describes is visible in
+  `metrics.csv`/`val_metrics.csv` during a run instead of only being noticed afterward on a demo
+  photo. This is monitoring, not a fix: the loss and validation split are still LOL-only, so
+  nothing here does early stopping against ordinary photos. That still needs a held-out set of
+  ordinary photos and a stopping rule keyed on `clipped`/`brightness` rather than LOL PSNR; neither
+  has been done.
 
 - No trained weights, benchmark results or ablation results are included. No quality or
   real-time claim is made; the 30 fps / 720p budget (capture 3 ms, resize 2, estimation 10,
