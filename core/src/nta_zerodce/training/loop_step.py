@@ -36,6 +36,7 @@ from nta_zerodce.flow.estimator import estimate_bidirectional
 from nta_zerodce.flow.masks import reliability_mask
 from nta_zerodce.losses.adaptive_exposure import adaptive_targets
 from nta_zerodce.losses.registry import LossSpec, build_losses
+from nta_zerodce.metrics.exposure import clipping_fraction
 from nta_zerodce.models.nta_zerodce import NTAZeroDCE, compute_gain
 from nta_zerodce.training.config import Config
 
@@ -318,7 +319,11 @@ def active_losses(config: Config) -> dict[str, LossSpec]:
 
 
 def compute_losses(
-    model: NTAZeroDCE, batch: dict[str, Tensor], config: Config
+    model: NTAZeroDCE,
+    batch: dict[str, Tensor],
+    config: Config,
+    *,
+    monitor: dict[str, Tensor] | None = None,
 ) -> tuple[Tensor, dict[str, Tensor], dict[str, Tensor]]:
     """Forward the student (and teacher/pair as needed) and evaluate the gated losses.
 
@@ -326,6 +331,9 @@ def compute_losses(
         model: Model on the batch device. Gradients flow through the student paths only.
         batch: Train batch as described in the module docstring.
         config: Validated Config.
+        monitor: Optional dict the caller provides to receive diagnostic tensors that are not
+            part of the objective; when given, ``monitor["enhanced"]`` is set to the detached
+            student output (over-brightening drift monitoring; see ``_scalars``).
 
     Returns:
         ``(total, raw, weighted)``: total is the scalar sum of ``weight * loss``; raw and
@@ -355,6 +363,8 @@ def compute_losses(
         raw[name] = value
         weighted[name] = spec.default_weight * value
     total = torch.stack(list(weighted.values())).sum()
+    if monitor is not None:
+        monitor["enhanced"] = student["enhanced"].detach()
     return total, raw, weighted
 
 
@@ -368,6 +378,20 @@ def _scalars(
     for name, value in weighted.items():
         out[f"weighted/{name}"] = float(value.detach())
     return out
+
+
+def _brightening_drift(enhanced: Tensor) -> dict[str, float]:
+    """Mean output brightness and near-saturated fraction (over-brightening early-warning).
+
+    These are diagnostics only, never weighted into the objective: the paired LOL loss used
+    for training/validation cannot see whether the model over-brightens ordinary photos (see
+    docs/IMPLEMENTATION.md Limits), so this tracks whether the *training* distribution itself
+    is drifting toward saturation as a cheap proxy, logged next to the loss terms.
+    """
+    return {
+        "brightness": float(enhanced.detach().mean()),
+        "clipped": float(clipping_fraction(enhanced.detach()).mean()),
+    }
 
 
 def _check_finite(total: Tensor, raw: dict[str, Tensor]) -> None:
@@ -394,7 +418,9 @@ def train_step(
 
     Returns:
         Detached Python floats: ``total``; every active raw loss under its name;
-        ``grad_norm`` (global norm before clipping); ``weighted/<name>`` for each weighted term.
+        ``grad_norm`` (global norm before clipping); ``weighted/<name>`` for each weighted term;
+        ``brightness`` and ``clipped`` (mean output intensity and near-saturated fraction,
+        over-brightening drift diagnostics, not part of the objective).
 
     Method:
         METHOD objective. The student sees the noisy image when noise-aware; the teacher is the
@@ -409,7 +435,8 @@ def train_step(
         ValueError: Missing batch keys or tensors on a different device than the model.
     """
     model.train()
-    total, raw, weighted = compute_losses(model, batch, config)
+    monitor: dict[str, Tensor] = {}
+    total, raw, weighted = compute_losses(model, batch, config, monitor=monitor)
     _check_finite(total, raw)
     optimizer.zero_grad(set_to_none=True)
     total.backward()
@@ -421,6 +448,7 @@ def train_step(
     optimizer.step()
     out = _scalars(total, raw, weighted)
     out["grad_norm"] = norm
+    out.update(_brightening_drift(monitor["enhanced"]))
     return out
 
 
@@ -435,14 +463,18 @@ def validation_step(
         config: Validated Config.
 
     Returns:
-        ``total``, every active raw loss and ``weighted/<name>`` (no ``grad_norm``). Non-finite
-        values are reported as they are, not raised.
+        ``total``, every active raw loss and ``weighted/<name>`` (no ``grad_norm``), plus
+        ``brightness`` and ``clipped`` (see ``train_step``). Non-finite values are reported as
+        they are, not raised.
     """
     was_training = model.training
     model.eval()
+    monitor: dict[str, Tensor] = {}
     try:
         with torch.no_grad():
-            total, raw, weighted = compute_losses(model, batch, config)
+            total, raw, weighted = compute_losses(model, batch, config, monitor=monitor)
     finally:
         model.train(was_training)
-    return _scalars(total, raw, weighted)
+    out = _scalars(total, raw, weighted)
+    out.update(_brightening_drift(monitor["enhanced"]))
+    return out
