@@ -76,7 +76,9 @@ def test_gating_matches_the_objective_for_every_ablation_row(
     assert set(active_losses(config)) == names
     assert not {"exp", "adaptive_exp"} <= set(result)  # mutually exclusive
     assert set(result) == (
-        {"total", "grad_norm"} | names | {f"weighted/{loss}" for loss in names}
+        {"total", "grad_norm", "brightness", "clipped"}
+        | names
+        | {f"weighted/{loss}" for loss in names}
     ), name
     assert all(math.isfinite(value) for value in result.values())
     weights = dataclasses.asdict(config.weights)

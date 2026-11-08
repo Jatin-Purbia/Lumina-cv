@@ -33,9 +33,9 @@ python -m pytest
 ```sh
 python scripts/train.py --config configs/full.py
 python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations
-python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/full.pt --output runs/eval.csv
-python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/full.pt --input data/unpaired --output runs/enhanced
-LUMINA_CHECKPOINT=checkpoints/full.pt python -m nta_zerodce.api
+python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/lol/final.pt --output runs/eval.csv
+python scripts/enhance.py --config configs/full.py --checkpoint checkpoints/lol/final.pt --input data/unpaired --output runs/enhanced
+LUMINA_CHECKPOINT=checkpoints/lol/final.pt python -m nta_zerodce.api
 ```
 
 Run any script with `--help` for all options.
@@ -50,4 +50,6 @@ Run any script with `--help` for all options.
 | `tests/` | unit, integration and end-to-end tests |
 | `docs/` | [ARCHITECTURE](docs/ARCHITECTURE.md) (design, math, API, data), [IMPLEMENTATION](docs/IMPLEMENTATION.md) (status, commands, limits) |
 
-No trained weights or benchmark results are included.
+Trained weights are included under `checkpoints/` (see [checkpoints/README.md](checkpoints/README.md)
+for what each one was trained on and its known failure modes); no benchmark or ablation results
+are included.

@@ -13,7 +13,9 @@ venv/
 .env
 /data/
 /runs/
-# checkpoints are tracked (about 1 MB each); see checkpoints/README.md
+# *.pt checkpoints under checkpoints/ are intentionally tracked (about 1 MB each; see
+# checkpoints/README.md) -- there is no "*.pt" rule here. *.pth (an older/alternate torch
+# checkpoint extension) stays ignored: new checkpoints should use *.pt and be added deliberately.
 *.pth
 *.mp4
 .ipynb_checkpoints/

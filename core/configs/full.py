@@ -1,4 +1,7 @@
-"""Untuned extension starting point (all extension flags on); not a validated quality result."""
+"""Untuned extension starting point (all extension flags on); not a validated quality result.
+
+``loss.exposure_target`` is 0.5, not the schema default of 0.6: see configs/baseline.py for why.
+"""
 
 CONFIG = {
     "schema_version": 1,
@@ -40,7 +43,7 @@ CONFIG = {
     "loss": {
         "spatial_patch": 4,
         "exposure_patch": 16,
-        "exposure_target": 0.6,
+        "exposure_target": 0.5,
         "adaptive_low": 0.55,
         "adaptive_high": 0.85,
         "adaptive_noise_scale": 0.05,
