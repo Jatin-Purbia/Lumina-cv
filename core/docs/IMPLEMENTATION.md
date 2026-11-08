@@ -41,10 +41,12 @@ explicit `--no-x` always overrides the config. Run `--help` on any script for al
 
 ## Artifacts
 
-- Training writes `config.yaml`, `split.json`, `provenance.json`, `metrics.csv`, `last.pt` and
-  periodic epoch checkpoints. Resume requires the identical resolved config and unchanged
-  dataset hashes.
-- Checkpoint format v1 holds model, optimizer, resolved config, RNG state and provenance;
+- Training writes `config.yaml`, `metrics.csv`, `val_metrics.csv`, periodic `epoch_XXXX.pt`
+  checkpoints and `final.pt` after the last epoch (see `training/trainer.py`). Resume requires
+  the identical resolved config and unchanged dataset split hashes, both embedded in the
+  checkpoint's provenance rather than written as separate files.
+- Checkpoint format v1 holds model, optimizer, resolved config, RNG state and provenance (split
+  hashes, run name, device, step counters, elapsed time, git/package versions) in one payload;
   unknown versions, extra keys and architecture mismatches are rejected.
 - Evaluation CSVs keep per-sample IDs and mask coverage.
 - Synthetic export stores preview PNGs, `pair.pt` (unquantized frames, flows, masks, affine
@@ -80,8 +82,8 @@ the installed SciPy/OpenCV.
   `loss.exposure_target`'s default was lowered from `0.6` to `0.5` (`training/config.py`,
   `configs/baseline.py`, `configs/full.py`), following this doc's own earlier suggestion that a
   lower exposure target should reduce the pressure toward over-brightening. And
-  `train_step`/`validation_step`
-  (`training/loop_step.py`) now log `brightness` (mean output intensity) and `clipped`
+  `train_step`/`validation_step` (`training/loop_step.py`) now log `brightness` (mean output
+  intensity) and `clipped`
   (near-saturated pixel fraction) on every step, so the drift this limit describes is visible in
   `metrics.csv`/`val_metrics.csv` during a run instead of only being noticed afterward on a demo
   photo. This is monitoring, not a fix: the loss and validation split are still LOL-only, so
@@ -89,9 +91,10 @@ the installed SciPy/OpenCV.
   ordinary photos and a stopping rule keyed on `clipped`/`brightness` rather than LOL PSNR; neither
   has been done.
 
-- No trained weights, benchmark results or ablation results are included. No quality or
-  real-time claim is made; the 30 fps / 720p budget (capture 3 ms, resize 2, estimation 10,
-  DIS 8, warp and curves 4, denoise 3, output 3) is a design target to be measured.
+- Trained weights are included under `checkpoints/` (see `checkpoints/README.md`); no benchmark
+  or ablation results are included. No quality or real-time claim is made; the 30 fps / 720p
+  budget (capture 3 ms, resize 2, estimation 10, DIS 8, warp and curves 4, denoise 3, output 3)
+  is a design target to be measured.
 - Loss weights and thresholds are untuned starting values. Synthetic noise is a Gaussian
   approximation; added-noise `sigma` is not a camera-noise label.
 - The loader cannot infer exposure labels or permissions: curate low-light inputs and
