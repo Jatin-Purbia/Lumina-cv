@@ -59,7 +59,9 @@ November 2026
 \section*{Abstract}
 We built Lumina CV, an end-to-end system for brightening photographs taken in poor light. It has three parts: a PyTorch model (``NTA-ZeroDCE''), a FastAPI inference server and a Next.js web application that shows a before/after comparison with an in-browser quality analysis. The model extends Zero-Reference Deep Curve Estimation (Zero-DCE) with a noise-estimation branch, a residual denoiser, and extra losses for edges, chromaticity and adaptive exposure. It also has an optional video-consistency path that uses optical flow. It is trained without any paired ground truth.
 
-This report describes the method and the software, and it analyses the training settings we tried while looking for the best model. We evaluated all eight saved training checkpoints (epochs 5 to 40) and four inference settings on the 15 held-out LOL image pairs. We also compared the model against plain gamma correction and histogram equalisation. The main finding is a trade-off. Held-out PSNR rises from 10.7~dB (epoch 10) to 16.6~dB (epoch 40), but the model drifts towards brightening everything too much, so ordinary photographs wash out. We therefore ship the 10-epoch model. Gamma correction with $\gamma=0.3$ reaches 16.7~dB PSNR, higher than any checkpoint, so the model's advantage is in colour fidelity and noise behaviour rather than pixel-wise PSNR. The 13-row ablation matrix was implemented but not run, so we make no ablation claims.
+This report describes the method and the software, and it analyses the training settings we tried while looking for the best model. We evaluated all eight saved training checkpoints (epochs 5 to 40) and four inference settings on the 15 held-out LOL image pairs. We also compared the model against plain gamma correction and histogram equalisation. The main finding is a trade-off. Held-out PSNR rises from 10.7~dB (epoch 10) to 16.6~dB (epoch 40), but the model drifts towards brightening everything too much, so ordinary photographs wash out. We therefore ship the 10-epoch model (exposure target 0.6). Gamma correction with $\gamma=0.3$ reaches 16.7~dB PSNR, higher than any checkpoint, so the model's advantage is in colour fidelity and noise behaviour rather than pixel-wise PSNR.
+
+We followed up with two concrete changes. First, we built a reusable held-out-photo validation pipeline (a 48-scene normal-light preservation set carved out of the fixed training split, plus a per-image regression gate on brightness, contrast and clipping) so that a brightening regression can be \emph{measured} before a checkpoint ships, not only noticed by eye. Second, we used it to test the obvious mitigation: retraining for 10 epochs with the exposure target lowered from 0.6 to 0.5. The candidate passed the preservation gate and improved normal-photo structural similarity slightly, but it also \emph{lowered} held-out low-light PSNR (10.68$\to$9.51~dB) and SSIM (0.506$\to$0.415) and visibly lost shadow detail, so we did not promote it; the shipped model keeps the original 0.6 target. We also found and fixed a real reliability bug: the deployed Starlette version silently broke the API's multipart upload parser, so every enhancement request failed; pinning a newer Starlette fixed it, and the regression test suite (now 2{,}080 passing, 2 skipped) covers it. The 13-row ablation matrix remains implemented but not run, so we still make no ablation claims.
 \endgroup
 
 \clearpage
@@ -84,7 +86,7 @@ Our goals were:
 \textbf{Contributions.} (i) The NTA-ZeroDCE model and training code; (ii) a deployable API and web app; (iii) an evaluation of the training schedule, baselines and inference settings, including the finding that longer training over-brightens ordinary photos while improving the standard benchmark score.
 
 %--------------------------------------------------------------------
-\section{Method}
+\section{Method}\label{sec:method}
 \subsection{Notation and curve model}
 Images are RGB tensors with values in $[0,1]$. The network $\mathcal{F}$ predicts eight curve-parameter maps $A_1,\dots,A_8$ (each with three channels, so 24 output channels, passed through $\tanh$ to lie in $[-1,1]$). The input $x_0=x$ is brightened by iterating the quadratic curve
 \begin{equation}
@@ -179,10 +181,10 @@ For video, an OpenCV DIS optical-flow estimator is run in both directions; a pix
 \end{figure}
 \begin{itemize}[nosep]
   \item \textbf{Python package} \code{nta\_zerodce} (\code{core/}): modules for models, losses, data, flow, inference, metrics, training, API and a shared CLI. Dependencies are one-directional (e.g.\ models never import losses or data). Experiments are Python files with a strict schema: unknown or missing keys fail, flag dependencies are checked, and each run saves its resolved \code{config.yaml}.
-  \item \textbf{Scripts:} \code{train}, \code{evaluate}, \code{enhance}, \code{ablate}, \code{make\_synthetic\_data}, \code{download\_lol}.
-  \item \textbf{API} (FastAPI): \code{GET /health}, \code{GET /options}, \code{POST /enhance} (PNG/JPEG upload with optional \code{curve\_scale}, returns an 8-bit PNG). Uploads are limited in bytes, pixels and side length; errors are always JSON with fixed codes; requests carry an id and \code{Cache-Control: no-store}. Checkpoint, device and limits are set through environment variables, and a Docker image is provided.
+  \item \textbf{Scripts:} \code{train}, \code{evaluate}, \code{enhance}, \code{ablate}, \code{make\_synthetic\_data}, \code{download\_lol}, plus three added for checkpoint review: \code{benchmark\_inference} (speed and pixel drift versus \code{curve\_scale}), \code{prepare\_photo\_validation} (builds the held-out normal-light preservation set) and \code{check\_photo\_regressions} (the per-image promotion gate; Sec.~\ref{sec:preservation}).
+  \item \textbf{API} (FastAPI): \code{GET /health}, \code{GET /options}, \code{POST /enhance} (PNG/JPEG upload with optional \code{curve\_scale}, returns an 8-bit PNG). Uploads are limited in bytes, pixels and side length; admission is checked \emph{before} multipart parsing, so a saturated server answers \code{503 server\_busy} with \code{Retry-After} instead of queuing uploads in memory; errors are always JSON with fixed codes; requests carry an id and \code{Cache-Control: no-store}. Checkpoint, device and limits are set through environment variables (an \code{.env} file lists every local checkpoint with one active line), and a Docker image is provided. We found and fixed a concrete reliability bug here: the installed Starlette version had dropped the \code{max\_part\_size}/\code{spool\_max\_size} multipart-parser interface the upload handler relied on, so every \code{POST /enhance} request raised an unhandled \code{TypeError}; pinning \code{starlette>=0.46.0} and \code{python-multipart>=0.0.18} restored it (Sec.~\ref{sec:reliability}).
   \item \textbf{Web app} (Next.js, TypeScript): image upload with client-side validation and down-scaling, a draggable before/after slider, and an Analysis panel computed in the browser.
-  \item \textbf{Quality assurance:} about 2060 Python tests (numerical identities, gradients, curve and affine conventions, checkpoint round trips, a 30-step overfit test, an end-to-end train/enhance/evaluate cycle, API contract and error codes) and a web test-suite (Vitest), plus linting, type-checking and a GitHub Actions workflow. When we re-ran the Python tests for this report: 2059 passed, 2 skipped (they need a CUDA GPU).
+  \item \textbf{Quality assurance:} 2{,}080 Python tests (numerical identities, gradients, curve and affine conventions, checkpoint round trips, a 30-step overfit test, an end-to-end train/enhance/evaluate cycle, API contract and error codes, plus new tests for the benchmark and validation scripts) and 70 web tests (Vitest), plus linting and a GitHub Actions workflow that runs the full suite, including the API/end-to-end tests, on Python 3.10 and 3.12. We re-ran both suites for this report: 2{,}080 Python tests passed (2 skipped, CUDA-only) and all 70 web tests passed. CI's \code{mypy} step runs only on the Python 3.12 job; in our local 3.13 environment \code{mypy --strict} reports 36 pre-existing errors, almost all requiring explicit \code{ndarray[...]} generics that newer numpy stub versions demand project-wide. Whether these reproduce in CI's own dependency resolution was not checked for this report; either way they are unrelated to the changes described here.
 \end{itemize}
 
 %--------------------------------------------------------------------
@@ -191,7 +193,7 @@ For video, an OpenCV DIS optical-flow estimator is run in both directions; a pix
 
 \textbf{Metrics.} PSNR and SSIM (11$\times$11 Gaussian window, $\sigma=1.5$) against the normal-light reference; angular error (degrees between RGB vectors, a colour-accuracy measure, lower is better); mean output brightness; fraction of clipped pixels ($Y\ge0.99$); and a flat-region noise estimate (Immerk{\ae}r's method~\cite{immerkaer}), lower is better but biased by texture. All numbers are mean $\pm$ standard deviation over the 15 images. Because the model is deterministic at inference and each setting was trained once (seed 17), the standard deviation reflects variation \emph{between images}, not between training runs.
 
-\textbf{Settings common to all runs.} Adam, learning rate $10^{-4}$, batch size 8, $128\times128$ random crops, 32 channels, 8 curve iterations, loss weights as in Sec.~2.3, CPU training. All trained checkpoints use \code{loss.exposure\_target}\,=\,0.6. Evaluation ran on CPU at full resolution ($400\times600$).
+\textbf{Settings common to all runs.} Adam, learning rate $10^{-4}$, batch size 8, $128\times128$ random crops, 32 channels, 8 curve iterations, loss weights as in Sec.~2.3, CPU training. The checkpoints in Table~\ref{tab:runs} and the epoch sweep (Sec.~\ref{sec:sweep}) all use \code{loss.exposure\_target}\,=\,0.6; Sec.~\ref{sec:target05} reports a later, separate 10-epoch run at 0.5. Evaluation ran on CPU at full resolution ($400\times600$).
 
 \textbf{Baselines.} Input (no processing); histogram equalisation of the luma channel; and gamma correction $x^{\gamma}$ with $\gamma\in\{0.5,0.4,0.3\}$.
 
@@ -203,10 +205,11 @@ Run & Training data & Extensions on & Epochs\\
 \midrule
 \code{lol\_dark\_only} & 485 LOL low-light photos & noise, denoise, edge, chroma, adaptive exp.; \emph{no} temporal & Config said 60; we stopped at 40 and kept a checkpoint every 5 epochs\\
 \code{lol/final.pt} (shipped) & same & same & 10 (identical weights to epoch 10 of the above)\\
-\code{full} & 96 synthetic procedural pairs & all, including temporal & 40\\
+\code{full} (checkpoint later removed) & 96 synthetic procedural pairs & all, including temporal & 40\\
+\code{photo\_target05\_20261109} & 485 LOL low-light photos (same split) & same as \code{lol\_dark\_only} & 10, exposure target 0.5 (Sec.~\ref{sec:target05})\\
 \bottomrule
 \end{tabular}
-\caption{The training runs for which logs and checkpoints exist.}
+\caption{The training runs referenced in this report. \code{full}'s checkpoint flattened real photos to grey and was removed from the repository after this report's figures were produced from its logs (\code{checkpoints/README.md}); only the logged curves in Figs.~\ref{fig:train}--\ref{fig:comp} remain as a historical record, and that run is not reproducible from the current repository state.}
 \label{tab:runs}
 \end{table}
 
@@ -281,7 +284,7 @@ Ours, epoch 40 & 16.58 & 0.591 & 7.29 & 0.469 & 0.000 & 0.021\\
 \end{figure}
 
 \subsection{Why we nevertheless ship the 10-epoch model}
-The LOL evaluation images are \emph{extremely dark} (mean 0.06), so a stronger model scores better on them. Ordinary photographs, such as those users upload to the web app, are not that dark. In our manual tests (recorded in the project notes), the checkpoints from epoch 15 onward start to blow out moderately dark photos, and by epoch 25 they wash out almost completely (flat, grey, low-contrast images). Epochs 5 and 10 give natural, moderate enhancement but under-brighten the darkest scenes. This is why the benchmark score and the visual quality move in \emph{opposite} directions, and why \code{lol/final.pt} is the epoch-10 checkpoint. We did not have a held-out set of ordinary photographs, so this finding rests on visual inspection rather than a measured score (see Limitations). Fig.~\ref{fig:qual} shows the progression on LOL images, and the epoch-25 and epoch-40 columns already look bright and low-contrast even though they have the best PSNR.
+The LOL evaluation images are \emph{extremely dark} (mean 0.06), so a stronger model scores better on them. Ordinary photographs, such as those users upload to the web app, are not that dark. In our manual tests (recorded in the project notes), the checkpoints from epoch 15 onward start to blow out moderately dark photos, and by epoch 25 they wash out almost completely (flat, grey, low-contrast images). Epochs 5 and 10 give natural, moderate enhancement but under-brighten the darkest scenes. This is why the benchmark score and the visual quality move in \emph{opposite} directions, and why \code{lol/final.pt} is the epoch-10 checkpoint. When this report was first written we had no held-out measurement for this, only visual inspection; Sec.~\ref{sec:preservation} describes the preservation gate we built since and the measured regression it catches between epoch 10 and 15. Fig.~\ref{fig:qual} shows the progression on LOL images, and the epoch-25 and epoch-40 columns already look bright and low-contrast even though they have the best PSNR.
 
 \begin{figure}[!htbp]
 \centering
@@ -289,6 +292,39 @@ The LOL evaluation images are \emph{extremely dark} (mean 0.06), so a stronger m
 \caption{Three held-out LOL images processed by the baselines and by different checkpoints. The shipped model (epoch 10) is conservative; later epochs are brighter and score higher on PSNR.}
 \label{fig:qual}
 \end{figure}
+
+\subsection{A reusable preservation gate for checkpoint promotion}\label{sec:preservation}
+Rather than keep relying on eyeballing a handful of photos, we built a small pipeline so that a brightening regression can be measured before a checkpoint is promoted. \code{prepare\_photo\_validation.py} takes the 48 scenes that the trainer's fixed scene split (Sec.~\ref{sec:setup}, seed 17, 10\% held out) already excludes from training, and writes their \emph{normal-light} LOL counterparts (never trained on, by construction) as a hashed, append-only manifest. \code{evaluate.py --unpaired} then reports, per image, mean brightness and contrast (and their input values) and the clipped-pixel fraction. \code{check\_photo\_regressions.py} compares a candidate checkpoint's per-image numbers against a reference checkpoint's, flagging any image whose brightness rose, contrast fell or clipping grew by more than an operator-supplied limit; it never trains, ranks or auto-deploys anything, and it exits non-zero on a regression.
+
+This set is a held-out split \emph{within LOL}, not an independent collection of ordinary photographs, so it tests preservation on normal-light scenes from the same source rather than true out-of-distribution generalisation (see Limitations). As a demonstration, we ran it on the \code{lol\_dark\_only} epoch-10 and epoch-15 checkpoints (illustrative limits: $+0.05$ brightness, $-0.02$ contrast, $+0.01$ clipping). Mean brightness over the 48 scenes rose from 0.554 (epoch 10) to 0.577 (epoch 15, input mean 0.493), and four individual images failed the limits: two from excess clipping (scenes 126, 53) and two from excess brightening (598, 769) that a dataset-average comparison would not have shown on its own. A self-comparison of epoch 10 against itself passed, as a sanity check on the gate. This is consistent with, and now partly quantifies, the over-brightening judged by eye in the previous section.
+
+\subsection{Testing the exposure-target mitigation}\label{sec:target05}
+The exposure loss \code{exp} (Sec.~\ref{sec:method}) pulls every patch's mean intensity toward one fixed target $E$, regardless of content; the obvious hypothesis is that a lower $E$ should reduce the pressure toward over-brightening on already-reasonable patches. We tested this directly: a second 10-epoch, seed-17 run (\code{photo\_target05\_20261109}, otherwise identical to \code{lol\_dark\_only}'s recipe) with $E=0.5$ instead of the shipped $0.6$, evaluated with the same pipeline on the 48-scene preservation set and the 15 paired LOL images.
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{lcc}
+\toprule
+Measurement & Shipped (target 0.6) & Candidate (target 0.5)\\
+\midrule
+Normal-photo SSIM vs.\ input (48 scenes) & 0.9353 & \textbf{0.9464}\\
+Normal-photo mean brightness (input 0.4927) & 0.5542 & 0.5555\\
+Normal-photo contrast std (input 0.1803) & 0.1612 & 0.1700\\
+Normal-photo clipped fraction & 0.0103 & 0.0110\\
+Normal-photo colour angular error vs.\ input & \textbf{1.67}\textdegree & 1.74\textdegree\\
+Low-light PSNR vs.\ reference (15 pairs) & \textbf{10.68}~dB & 9.51~dB\\
+Low-light SSIM vs.\ reference & \textbf{0.506} & 0.415\\
+Low-light colour angular error & \textbf{7.77}\textdegree & 8.24\textdegree\\
+\bottomrule
+\end{tabular}
+\caption{Shipped (target 0.6) versus candidate (target 0.5), both after 10 epochs, seed 17. Bold marks the better value per row.}
+\label{tab:target05}
+\end{table}
+
+The candidate passed the illustrative preservation limits and nudged normal-photo structural similarity up, but mean brightness on normal photos barely moved, colour error on both sets got slightly worse, and -- more importantly -- held-out low-light PSNR and SSIM both \emph{dropped} relative to the shipped model, with visibly weaker shadow detail on review. Lowering the exposure target did not fix over-brightening on ordinary photos and cost accuracy on the dark images the model is nominally trained for, so we did not promote it: \code{lol/final.pt} (target 0.6) remains the shipped model, and target 0.5 is kept only as a documented, rejected experiment (\code{configs/photo\_target05.py}). This is a single seed, single run; it rules out the simplest version of the fix, not the whole idea of adjusting the exposure target.
+
+\subsection{Fixing a real API reliability bug}\label{sec:reliability}
+While exercising the server end-to-end for this round of work we found that every \code{POST /enhance} request failed with an unhandled \code{TypeError}: the upload handler builds Starlette's \code{MultiPartParser} with a \code{max\_part\_size} constructor argument and then sets \code{parser.spool\_max\_size} to keep uploads in memory, but the Starlette version resolved by the project's open-ended \code{>=0.30} dependency bound no longer exposes either. This is independent of the model and of everything else in this report, but it meant the deployed API could not serve a single enhancement request. We fixed it by raising the minimum to \code{starlette>=0.46.0} (which restores that constructor argument) and \code{python-multipart>=0.0.18}, and added regression coverage so a future dependency drift fails CI instead of failing silently in production.
 
 \subsection{Comparison with simple baselines}
 \begin{figure}[!htbp]
@@ -335,10 +371,31 @@ Fig.~\ref{fig:internals} visualises the internals for one test image (LOL \code{
 0.125 & 10.74 & 0.520 & 7.90 & 0.34\\
 \bottomrule
 \end{tabular}
-\caption{Effect of \code{curve\_scale} (shipped model, $400\times600$ images, CPU).}
+\caption{Effect of \code{curve\_scale} on LOL accuracy (shipped model, $400\times600$ images, CPU).}
 \label{tab:cs}
 \end{table}
-Quality is practically unchanged: PSNR and SSIM slightly \emph{increase} (smoother curves), and the colour error increases by 0.1 degrees. Speed roughly doubles at 0.5 and nearly triples at 0.25; below that no further gain appeared. Timings were taken on a shared, unloaded-but-uncontrolled desktop CPU and fluctuate (the 0.125 point is slower than 0.25), so they show the trend rather than precise values.
+Quality is practically unchanged: PSNR and SSIM slightly \emph{increase} (smoother curves), and the colour error increases by 0.1 degrees. Speed roughly doubles at 0.5 and nearly triples at 0.25; below that no further gain appeared. Timings in Table~\ref{tab:cs} were taken on a shared, unloaded-but-uncontrolled desktop CPU and fluctuate (the 0.125 point is slower than 0.25), so they show the trend rather than precise values.
+
+We later added \code{benchmark\_inference.py}, a dedicated script that records checkpoint hash, image paths, runtime versions, one warm-up and three timed runs per image, and the per-pixel drift against \code{curve\_scale=1} on the same checkpoint (not against a reference photo). Table~\ref{tab:cs2} repeats the comparison at 1 and 4 CPU threads on six committed ordinary photos (\code{public/low-light-*.png}), which is a different, more controlled measurement than Table~\ref{tab:cs}'s LOL timings.
+
+\begin{table}[!htbp]
+\centering\small
+\begin{tabular}{ccccc}
+\toprule
+Threads & \code{curve\_scale} & ms/image & Speedup & Max.\ pixel drift (0--255)\\
+\midrule
+1 & 1 & 1544.2 & 1.00$\times$ & 0\\
+1 & 0.5 & 428.0 & 3.61$\times$ & 75.95\\
+1 & 0.25 & 224.5 & 6.88$\times$ & 90.67\\
+4 & 1 & 1250.2 & 1.00$\times$ & 0\\
+4 & 0.5 & 425.0 & 2.94$\times$ & 75.95\\
+4 & 0.25 & 165.4 & 7.56$\times$ & 90.67\\
+\bottomrule
+\end{tabular}
+\caption{Speed and drift versus \code{curve\_scale} and thread count (same CPU as Table~\ref{tab:cs}, measured 9 Nov.\ 2026). Drift is mean-absolute and max per-pixel-per-channel difference from the same checkpoint at scale 1, not error against a reference photo.}
+\label{tab:cs2}
+\end{table}
+Average drift stayed below one intensity level even at 0.25 (not shown; see the raw JSON), but the \emph{maximum} per-pixel drift (up to 91 of 255) shows that small average drift can hide locally large differences, consistent with the near-zero average PSNR/SSIM change in Table~\ref{tab:cs} not ruling out visible local changes. We keep \code{curve\_scale=1} as the default for this reason and treat lower scales as an explicit, inspected speed trade-off rather than a free win.
 
 \begin{figure}[!htbp]
 \centering
@@ -373,40 +430,43 @@ Training data: 96 synthetic procedural images, 40 epochs & Model flattened real 
 Training data: LOL low-light photos & Works; basis of all shipped weights & Sec.~\ref{sec:sweep}\\
 Adding normal-light and darkened copies to the training set & Did not fix the over-brightening & Project notes (\code{docs/ARCHITECTURE.md}); not re-run\\
 Training length 5 / 10 / 15 / \dots\ / 40 epochs & 10 chosen for visual quality; 40 for benchmark score & Table~\ref{tab:sweep}\\
-\code{exposure\_target} 0.6 & Used for \emph{all} shipped checkpoints & Run configs\\
-\code{exposure\_target} 0.5 & Now the config default to reduce over-brightening; \textbf{not yet retrained or evaluated} & Commit history; configs\\
-Per-step brightness/clipping diagnostics in training logs & Added so drift is visible during training; monitoring only, not a fix & Commit history\\
+\code{exposure\_target} 0.6 & Used for \emph{all} shipped checkpoints; retained after testing 0.5 & Run configs; Sec.~\ref{sec:target05}\\
+\code{exposure\_target} 0.5 (completed) & Retrained 10 epochs, seed 17: passed the preservation gate but \emph{lowered} low-light PSNR/SSIM and lost shadow detail; \textbf{not promoted} & Table~\ref{tab:target05}; Sec.~\ref{sec:target05}\\
+Per-step brightness/clipping diagnostics in training logs & Added so drift is visible during training; monitoring only, not a fix on its own & \code{training/loop\_step.py}\\
+Held-out normal-light preservation gate (48 LOL scenes, per-image limits) & Built and exercised on epoch 10 vs.\ 15; caught 4 per-image regressions a dataset average would hide & Sec.~\ref{sec:preservation}\\
+Starlette version bound (\code{>=0.30}) & Silently broke the upload parser (every \code{POST /enhance} failed); pinned \code{>=0.46.0} & Sec.~\ref{sec:reliability}\\
 Temporal term on synthetic pairs & Run trained; lower validation loss, not comparable (different data) & Fig.~\ref{fig:train}\\
-\code{curve\_scale} 1 to 0.125 & No quality loss, 2--3$\times$ faster & Table~\ref{tab:cs}\\
-13-row ablation matrix (3 seeds) & Defined in \code{configs/ablation\_matrix.py}; \textbf{not run} & No results exist\\
+\code{curve\_scale} 1 to 0.125 & No LOL-accuracy loss, 2--7$\times$ faster depending on threads; local pixel drift up to 91/255 & Tables~\ref{tab:cs}--\ref{tab:cs2}\\
+13-row ablation matrix (3 seeds) & Defined in \code{configs/ablation\_matrix.py}; \textbf{still not run} & No results exist\\
 \end{longtable}
 \endgroup
 
 %--------------------------------------------------------------------
-\section{Discussion}
+\section{Discussion}\label{sec:discussion}
 \textbf{Benchmark score versus perceived quality.} The central lesson is that optimising or selecting by held-out PSNR on very dark images would have chosen a 40-epoch model that visually over-brightens. Because the training losses contain an exposure term with a fixed target (0.6), the longer the network trains, the more it pushes every image toward that mean. Stronger curves (Fig.~\ref{fig:internals}) are the mechanism. Early stopping at epoch 10 is a workaround, not a fix.
 
-\textbf{Possible fixes (not yet done).} (i) Retrain with \code{exposure\_target}\,=\,0.5 (already the config default) and compare brightness and clipping; (ii) use the adaptive-exposure target more aggressively so already well-lit images stay unchanged; (iii) build a validation set of ordinary photos and stop on brightness/clipping instead of LOL PSNR; (iv) include a small fraction of well-exposed images with an identity loss.
+\textbf{The obvious fix did not work.} We tested the most direct mitigation, lowering \code{exposure\_target} to 0.5 (Sec.~\ref{sec:target05}): it did not meaningfully reduce normal-photo brightening and it cost accuracy on the dark images the model targets, so the shipped recipe keeps 0.6. This is informative in the way a negative result is informative -- the fixed-target exposure loss itself, not just its numeric value, is the more likely culprit, pointing toward the remaining untried ideas: (i) use the adaptive-exposure target more aggressively so already well-lit regions stay unchanged, instead of only replacing a global constant with a smaller global constant; (ii) build a validation set of genuinely independent ordinary photos (not LOL's held-out normal-light scenes, which share LOL's camera and processing) and stop on brightness/clipping instead of LOL PSNR; (iii) include a small fraction of well-exposed images with an identity loss during training. What \emph{is} done, and reusable for testing any of these, is the preservation gate itself (Sec.~\ref{sec:preservation}): any future candidate can be checked against the shipped model on the same 48 scenes before being considered for promotion.
 
 \textbf{The baselines are strong.} A tuned gamma beats our model on PSNR and SSIM on LOL. The model's value lies in colour fidelity, spatially varying enhancement, a noise-aware path and the fact that it needs no tuning per image, but a fair claim requires a no-reference perceptual metric and a user study, which we did not do.
 
 \textbf{Limitations.}
 \begin{itemize}[nosep]
-  \item Each setting was trained once with one seed; no confidence intervals over training runs.
-  \item The 15-image test set is small; one set (LOL) with very dark images only.
+  \item Each setting was trained once with one seed; no confidence intervals over training runs. The exposure-target comparison (Sec.~\ref{sec:target05}) is a single seed too, so it rules out that one run, not the idea in general.
+  \item The 15-image paired test set is small; one set (LOL) with very dark images only.
+  \item The 48-scene preservation set (Sec.~\ref{sec:preservation}) is a held-out split \emph{within} LOL, not an independent collection of ordinary photographs -- it shares LOL's camera, processing and scene types, so passing it is necessary but not sufficient evidence of general preservation. The illustrative regression limits used there were also not independently validated against human judgements of acceptability.
   \item The ablation matrix (value of each extension) was not run, so the individual contribution of noise branch, denoiser, edge, chroma and adaptive-exposure losses is \emph{not} established. The single-image denoiser result is anecdotal.
   \item Loss weights and thresholds are untuned starting values; synthetic noise is a Gaussian approximation.
-  \item The ``ordinary-photo over-brightening'' finding rests on visual inspection of a few images.
   \item Video/temporal consistency was implemented and unit-tested, but no video benchmark was run.
   \item Checkpoints use PyTorch pickle serialisation: load only trusted files. The API has no authentication.
+  \item \code{mypy --strict} reports pre-existing, unrelated errors locally (Sec.~3); it is not yet a hard gate project-wide.
 \end{itemize}
 
 %--------------------------------------------------------------------
 \section{Conclusion}
-We delivered a complete low-light enhancement system: a small, noise-aware zero-reference model, a robust API, and a web app with built-in analysis. Our experiments on checkpoint selection show a clear tension between a benchmark metric and natural-looking results, and we chose the conservative 10-epoch model for deployment. Honest next steps are to run the ablation matrix, test the lower exposure target, evaluate on ordinary photographs and on video, and compare against other zero-reference methods.
+We delivered a complete low-light enhancement system: a small, noise-aware zero-reference model, a robust API, and a web app with built-in analysis. Our experiments on checkpoint selection show a clear tension between a benchmark metric and natural-looking results, and we chose the conservative 10-epoch model (exposure target 0.6) for deployment. We also went one step further than diagnosing the problem: we built a reusable preservation gate, used it to test the most obvious mitigation, and found that mitigation does not work -- a concrete, if negative, result that narrows where the real fix must come from. Separately, fixing the upload-parser bug (Sec.~\ref{sec:reliability}) was a reminder that an open-ended dependency bound can silently break a deployed feature with no code change on our side. Honest next steps are to run the ablation matrix, collect an independent set of ordinary photographs for the preservation gate, try the adaptive-exposure and identity-loss mitigations in Sec.~\ref{sec:discussion}, evaluate on video, and compare against other zero-reference methods.
 
 \section*{Reproducing the numbers}
-All figures and tables in Sec.~4 were produced by running the committed checkpoints in \code{core/checkpoints/} on the 15 LOL evaluation pairs in \code{core/data/LOL/eval15/} (CPU, full resolution). The training-curve figures read \code{core/runs/*/metrics.csv} and \code{val\_metrics.csv}.
+Sec.~4's checkpoint-sweep and baseline numbers were produced by running the committed checkpoints in \code{core/checkpoints/lol\_dark\_only/} on the 15 LOL evaluation pairs in \code{core/data/LOL/eval15/} (CPU, full resolution); the \code{curve\_scale} drift table (Table~\ref{tab:cs2}) by \code{scripts/benchmark\_inference.py} on the six \code{public/low-light-*.png} images; and the exposure-target and preservation-gate results (Secs.~\ref{sec:preservation}--\ref{sec:target05}) by \code{scripts/prepare\_photo\_validation.py}, \code{scripts/evaluate.py --unpaired} and \code{scripts/check\_photo\_regressions.py} against \code{core/checkpoints/lol/final.pt} and \code{core/checkpoints/photo\_target05\_20261109/final.pt}; raw files are under \code{core/docs/benchmarks/}. The \code{full} run's training-curve figures (Figs.~\ref{fig:train}--\ref{fig:comp}) are a historical record from before its checkpoint was removed (Table~\ref{tab:runs}) and are not independently reproducible from the current repository.
 
 \begin{thebibliography}{9}
 \bibitem{zerodce} C.~Guo, C.~Li, J.~Guo, C.~C.~Loy, J.~Hou, S.~Kwong, R.~Cong. Zero-Reference Deep Curve Estimation for Low-Light Image Enhancement. \emph{CVPR}, 2020.
@@ -440,8 +500,10 @@ Optimiser & Adam, $\beta=(0.9,0.999)$, weight decay $10^{-4}$\\
 Learning rate, batch, crop & $10^{-4}$, 8, 128\\
 Gradient clipping & 0.1\\
 Seed & 17\\
-Exposure target (shipped weights) & 0.6\\
-Exposure target (current config default) & 0.5 (not retrained)\\
+Exposure target (shipped \code{lol}/\code{photo} recipes) & 0.6\\
+Exposure target (\code{baseline}/\code{full} research configs) & 0.5\\
+Exposure target (tested, rejected alternative) & 0.5, \code{configs/photo\_target05.py} (Sec.~\ref{sec:target05})\\
+Starlette / python-multipart minimums & \code{>=0.46.0} / \code{>=0.0.18} (Sec.~\ref{sec:reliability})\\
 \bottomrule
 \end{tabularx}
 \endgroup
