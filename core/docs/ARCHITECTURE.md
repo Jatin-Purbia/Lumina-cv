@@ -243,7 +243,7 @@ explicit `--no-x` always overrides the config. Run `--help` on any script for al
 ### Testing
 
 ```sh
-python -m pytest                      # about 2,060 tests, CPU only, no data or network
+python -m pytest                      # about 2,080 tests, CPU only, no data or network
 python -m ruff check . && python -m ruff format --check . && python -m mypy
 cd ../web && npm test && npm run typecheck && npm run lint && npm run build
 ```

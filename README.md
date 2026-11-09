@@ -66,8 +66,8 @@ In the same terminal (venv activated, inside `core`):
 
 ```powershell
 copy .env.example .env
-`python -m nta_zerodce.api
-````
+python -m nta_zerodce.api
+```
 
 `.env` (gitignored) lists every checkpoint in `checkpoints/` with one `LUMINA_CHECKPOINT=` line
 active and the rest commented out. To serve a different model, move the `#` to another line and
@@ -120,7 +120,7 @@ python scripts/benchmark_inference.py --checkpoint checkpoints/lol/final.pt --in
 ## Tests
 
 ```powershell
-cd core; python -m pytest        # about 2,060 tests, CPU, no data or network needed
+cd core; python -m pytest        # about 2,080 tests, CPU, no data or network needed
 cd ..\web; npm test
 ```
 
