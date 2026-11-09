@@ -32,30 +32,30 @@
 \begin{document}
 % The title, authors and complete abstract share the first page.
 \begin{center}
-\vspace*{3mm}
+\vspace*{2mm}
 {\small PROJECT REPORT\par}
-\vspace{6mm}
+\vspace{4mm}
 {\huge\bfseries Lumina CV\par}
-\vspace{5mm}
+\vspace{3mm}
 {\Large Noise- and Temporal-Aware\\[3pt]
 Zero-Reference Low-Light Image Enhancement\par}
-\vspace{8mm}
+\vspace{5mm}
 \begingroup
-\renewcommand{\arraystretch}{1.3}
+\renewcommand{\arraystretch}{1.2}
 \begin{tabular}{@{}l@{\hspace{10mm}}l@{}}
 Jatin Purbia & B23CH11022\\
 Sharana Gouda Lakshetty & B23CH1042\\
 Rahul Ahuja & B23CH1037
 \end{tabular}
 \endgroup
-\par\vspace{5mm}
+\par\vspace{3mm}
 November 2026
 \end{center}
-\vspace{3mm}
+\vspace{2mm}
 
 \begingroup
-\linespread{1.12}\selectfont
-\setlength{\parskip}{9pt}
+\linespread{1.04}\selectfont
+\setlength{\parskip}{6pt}
 \section*{Abstract}
 We built Lumina CV, an end-to-end system for brightening photographs taken in poor light. It has three parts: a PyTorch model (``NTA-ZeroDCE''), a FastAPI inference server and a Next.js web application that shows a before/after comparison with an in-browser quality analysis. The model extends Zero-Reference Deep Curve Estimation (Zero-DCE) with a noise-estimation branch, a residual denoiser, and extra losses for edges, chromaticity and adaptive exposure. It also has an optional video-consistency path that uses optical flow. It is trained without any paired ground truth.
 
@@ -478,7 +478,6 @@ Sec.~4's checkpoint-sweep and baseline numbers were produced by running the comm
 \bibitem{lai} W.-S.~Lai et al. Learning Blind Video Temporal Consistency. \emph{ECCV}, 2018.
 \end{thebibliography}
 
-\clearpage
 \appendix
 \section{Hyperparameters of the shipped configuration}
 % Keep the appendix heading and table together; wrap long cells within the margins.
