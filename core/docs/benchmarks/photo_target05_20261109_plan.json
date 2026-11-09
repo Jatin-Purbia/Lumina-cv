@@ -1,0 +1,51 @@
+{
+  "run": "photo_target05_20261109",
+  "epochs": 10,
+  "device": "cpu",
+  "intraop_threads": 4,
+  "reference_checkpoint_sha256": "efd25e47d0a53daa052f344d89a63e0b1e1338cc593ea7169909eb02fc445297",
+  "reference_runtime": {
+    "python": "3.12.4",
+    "torch": "2.15.0+cpu",
+    "numpy": "2.5.4"
+  },
+  "configuration_differences": {
+    "loss.exposure_target": {
+      "reference": 0.6,
+      "experiment": 0.5
+    },
+    "training.epochs": {
+      "reference": 60,
+      "experiment": 10
+    },
+    "training.checkpoint_every": {
+      "reference": 5,
+      "experiment": 1
+    }
+  },
+  "preservation_dataset": "runs/improvements/ordinary_validation",
+  "validation_split_sha256": "e5369eb16380aedd32d0437cb121f13c73e1ce4139e4a3a8260b90f06540edb7",
+  "regression_limits": {
+    "max_brightness_increase": 0.05,
+    "max_contrast_drop": 0.02,
+    "max_clipping_increase": 0.01
+  },
+  "visual_review_scene_ids": [
+    "124",
+    "213",
+    "532",
+    "60",
+    "734",
+    "83"
+  ],
+  "low_light_review_files": [
+    "low-light-1.png",
+    "low-light-146.png",
+    "low-light-22.png",
+    "low-light-493.png",
+    "low-light-665.png",
+    "low-light-778.png"
+  ],
+  "decision_policy": "Report test metrics and review detail/color; do not auto-promote on loss or PSNR alone",
+  "limitations": "Normal-light preservation images are held out within LOL; independent everyday-photo validation is still needed."
+}

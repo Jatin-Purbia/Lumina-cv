@@ -132,7 +132,7 @@ class LossConfig:
         spatial_patch: int; default 4. Units and bounds in INTERFACES.
         exposure_patch: int; default 16. Units and bounds in INTERFACES.
         exposure_target: float; default 0.5 (lowered from the original 0.6 as the first
-            over-brightening mitigation named in docs/IMPLEMENTATION.md Limits; unverified by
+            over-brightening mitigation named in docs/ARCHITECTURE.md Limits; unverified by
             retraining). Units and bounds in INTERFACES.
         adaptive_low: float; default 0.55. Units and bounds in INTERFACES.
         adaptive_high: float; default 0.85. Units and bounds in INTERFACES.

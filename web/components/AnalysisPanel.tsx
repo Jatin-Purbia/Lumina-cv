@@ -36,9 +36,9 @@ const ROWS: Row[] = [
   {
     label: "Shadow brightness",
     hint: "Brightness of the pixels that were dark in the original.",
-    read: (m) => f0(m.darkMean),
+    read: (m) => m.darkCount > 0 ? f0(m.darkMean) : "n/a",
     value: (m) => m.darkMean,
-    better: "up",
+    better: null,
   },
   {
     label: "Contrast",
@@ -48,29 +48,29 @@ const ROWS: Row[] = [
     better: null,
   },
   {
-    label: "Noise and grain",
-    hint: "Fine pixel-to-pixel variation; lower is cleaner.",
+    label: "Fine pixel variation",
+    hint: "Includes noise, texture and edges; a lower value may also mean lost detail.",
     read: (m) => f1(m.noise),
     value: (m) => m.noise,
-    better: "down",
+    better: null,
   },
   {
     label: "Color saturation",
-    hint: "How colorful the image is; plain brightening fades color.",
+    hint: "Mean HSV saturation; does not measure hue accuracy.",
     read: (m) => f2(m.saturation),
     value: (m) => m.saturation,
     better: null,
   },
   {
-    label: "Tonal richness",
+    label: "Histogram entropy",
     hint: "Entropy of the brightness histogram, in bits.",
     read: (m) => f2(m.entropy),
     value: (m) => m.entropy,
     better: null,
   },
   {
-    label: "Clipped highlights",
-    hint: "Share of near-white pixels; lower is safer.",
+    label: "Near-white pixels",
+    hint: "Share with mean RGB above 98% white; individual channel clipping is not counted.",
     read: (m) => `${f1(m.clipped)}%`,
     value: (m) => m.clipped,
     better: "down",
@@ -213,8 +213,8 @@ function AnalysisBody({ analysis }: { analysis: Analysis }): ReactElement {
               <th scope="col">Method</th>
               <th scope="col">Overall</th>
               <th scope="col">Shadows</th>
-              <th scope="col">Noise</th>
-              <th scope="col">Color</th>
+              <th scope="col">Fine variation</th>
+              <th scope="col">Saturation</th>
             </tr>
           </thead>
           <tbody>

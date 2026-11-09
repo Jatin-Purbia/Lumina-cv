@@ -54,6 +54,16 @@ describe("api proxy route", () => {
     expect(new Headers(init.headers).get("cookie")).toBeNull();
   });
 
+  it("preserves the overload response and retry hint", async () => {
+    fetchMock.mockResolvedValue(Response.json({ error: { code: "server_busy", message: "Busy" } }, {
+      status: 503, headers: { "retry-after": "1" },
+    }));
+    const response = await POST(new Request("http://web/api/v1/enhance", { method: "POST", body: "upload" }), ctx("enhance"));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect((await response.json()).error.code).toBe("server_busy");
+  });
+
   it("answers 502 JSON when the upstream is unreachable", async () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
     const res = await GET(new Request("http://web/api/v1/health"), ctx("health"));

@@ -22,6 +22,7 @@ TOO_LARGE = "too_large"
 UNSUPPORTED_TYPE = "unsupported_type"
 BAD_OPTION = "bad_option"
 MODEL_NOT_LOADED = "model_not_loaded"
+SERVER_BUSY = "server_busy"
 # Codes for framework-level and unexpected failures (not part of the web client's contract).
 NOT_FOUND = "not_found"
 METHOD_NOT_ALLOWED = "method_not_allowed"
@@ -34,11 +35,18 @@ _MAX_ECHOED_PATH = 200
 class ApiError(Exception):
     """An error that is reported to the client as JSON with a fixed status and code."""
 
-    def __init__(self, status_code: int, code: str, message: str) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
+        self.headers = headers
 
 
 def error_body(code: str, message: str) -> dict[str, Any]:
@@ -61,7 +69,7 @@ def _printable(text: str) -> str:
 
 async def _api_error_handler(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ApiError)
-    return error_response(exc.status_code, exc.code, exc.message)
+    return error_response(exc.status_code, exc.code, exc.message, exc.headers)
 
 
 async def _http_error_handler(request: Request, exc: Exception) -> JSONResponse:

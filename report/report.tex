@@ -5,6 +5,9 @@
 \usepackage{lmodern}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
 \usepackage{amsmath,amssymb}
 \usepackage{xcolor}
 \usepackage[section]{placeins}
@@ -21,29 +24,45 @@
 \graphicspath{{figures/}}
 \setlength{\parskip}{4pt}
 \setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{2em}
 \captionsetup{font=small,labelfont=bf}
 
 \newcommand{\code}[1]{\texttt{#1}}
 
-\title{\textbf{Lumina CV: Noise- and Temporal-Aware\\Zero-Reference Low-Light Image Enhancement}\\[4pt]
-\large Project Report}
-\author{
-\begin{tabular}{ll}
+\begin{document}
+% The title, authors and complete abstract share the first page.
+\begin{center}
+\vspace*{3mm}
+{\small PROJECT REPORT\par}
+\vspace{6mm}
+{\huge\bfseries Lumina CV\par}
+\vspace{5mm}
+{\Large Noise- and Temporal-Aware\\[3pt]
+Zero-Reference Low-Light Image Enhancement\par}
+\vspace{8mm}
+\begingroup
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}l@{\hspace{10mm}}l@{}}
 Jatin Purbia & B23CH11022\\
 Sharana Gouda Lakshetty & B23CH1042\\
 Rahul Ahuja & B23CH1037
-\end{tabular}}
-\date{November 2026}
+\end{tabular}
+\endgroup
+\par\vspace{5mm}
+November 2026
+\end{center}
+\vspace{3mm}
 
-\begin{document}
-\maketitle
-
-\begin{abstract}
+\begingroup
+\linespread{1.12}\selectfont
+\setlength{\parskip}{9pt}
+\section*{Abstract}
 We built Lumina CV, an end-to-end system for brightening photographs taken in poor light. It has three parts: a PyTorch model (``NTA-ZeroDCE''), a FastAPI inference server and a Next.js web application that shows a before/after comparison with an in-browser quality analysis. The model extends Zero-Reference Deep Curve Estimation (Zero-DCE) with a noise-estimation branch, a residual denoiser, and extra losses for edges, chromaticity and adaptive exposure. It also has an optional video-consistency path that uses optical flow. It is trained without any paired ground truth.
 
 This report describes the method and the software, and it analyses the training settings we tried while looking for the best model. We evaluated all eight saved training checkpoints (epochs 5 to 40) and four inference settings on the 15 held-out LOL image pairs. We also compared the model against plain gamma correction and histogram equalisation. The main finding is a trade-off. Held-out PSNR rises from 10.7~dB (epoch 10) to 16.6~dB (epoch 40), but the model drifts towards brightening everything too much, so ordinary photographs wash out. We therefore ship the 10-epoch model. Gamma correction with $\gamma=0.3$ reaches 16.7~dB PSNR, higher than any checkpoint, so the model's advantage is in colour fidelity and noise behaviour rather than pixel-wise PSNR. The 13-row ablation matrix was implemented but not run, so we make no ablation claims.
-\end{abstract}
+\endgroup
 
+\clearpage
 \tableofcontents
 \clearpage
 
@@ -85,25 +104,25 @@ Fig.~\ref{fig:arch} shows the pipeline. All components are small convolutional n
 
 \begin{figure}[!htbp]
 \centering
-\begin{tikzpicture}[node distance=7mm and 8mm, every node/.style={font=\small},
-  box/.style={draw,rounded corners,minimum height=9mm,minimum width=22mm,align=center,fill=blue!6},
-  opt/.style={draw,rounded corners,minimum height=9mm,minimum width=22mm,align=center,fill=orange!12},
-  io/.style={draw,minimum height=9mm,minimum width=14mm,align=center,fill=gray!12},
-  arr/.style={-{Stealth[length=2mm]}}]
- \node[io] (x) {input $x$};
- \node[opt,right=of x,yshift=9mm] (nb) {Noise branch\\$\sigma$ map};
- \node[box,right=of x,yshift=-9mm,xshift=24mm] (dce) {DCE-Net\\24 curve maps $A$};
- \node[box,right=of dce] (cur) {8 curve\\iterations};
- \node[opt,right=of cur] (den) {Residual\\denoiser};
- \node[io,right=of den] (o) {output $o$};
- \draw[arr] (x) -- ++(0,0) |- (nb);
- \draw[arr] (x) |- (dce);
- \draw[arr] (nb) -| (dce);
- \draw[arr] (dce) -- (cur);
- \draw[arr] (cur) -- (den);
- \draw[arr] (den) -- (o);
- \draw[arr] (nb.east) -- ++(48mm,0) -| (den.north);
- \draw[arr,dashed] (x.south) -- ++(0,-8mm) -| (cur.south);
+\begin{tikzpicture}[every node/.style={font=\small},
+  box/.style={draw,rounded corners=2pt,minimum height=11mm,align=center,fill=blue!6,inner sep=4pt},
+  opt/.style={box,fill=orange!12},
+  io/.style={draw,minimum height=11mm,align=center,fill=gray!12,inner sep=4pt},
+  arr/.style={-{Stealth[length=2mm]},semithick}]
+ \node[io,minimum width=15mm] (x) at (0,0) {input $x$};
+ \node[box,minimum width=30mm] (dce) at (3.4,0) {DCE-Net\\24 curve maps $A$};
+ \node[box,minimum width=23mm] (cur) at (7.2,0) {8 curve\\iterations};
+ \node[opt,minimum width=25mm] (den) at (10.7,0) {Residual\\denoiser};
+ \node[io,minimum width=17mm] (o) at (13.5,0) {output $o$};
+ \node[opt,minimum width=30mm] (nb) at (3.4,2) {Noise branch\\$\sigma$ map};
+ \draw[arr] (x.north) -- (0,2) -- (nb.west);
+ \draw[arr] (x.east) -- (dce.west);
+ \draw[arr] (nb.south) -- (dce.north);
+ \draw[arr] (nb.east) -- node[above,font=\footnotesize] {noise conditioning $\sigma$} (10.7,2) -- (den.north);
+ \draw[arr] (dce.east) -- (cur.west);
+ \draw[arr] (cur.east) -- (den.west);
+ \draw[arr] (den.east) -- (o.west);
+ \draw[arr,dashed] (x.south) -- (0,-1.1) -- node[below,font=\footnotesize] {original RGB input} (7.2,-1.1) -- (cur.south);
 \end{tikzpicture}
 \caption{NTA-ZeroDCE. Orange blocks (noise branch, denoiser) are optional extensions; with them disabled the model is the Zero-DCE baseline. The dashed arrow shows that the curves are applied to the original input.}
 \label{fig:arch}
@@ -127,7 +146,7 @@ Training needs no reference images. The four baseline losses follow Zero-DCE:
 Our extensions, each behind a feature flag in the configuration:
 \begin{center}
 \small
-\begin{tabular}{llp{8.2cm}c}
+\begin{tabularx}{\linewidth}{@{}ll>{\raggedright\arraybackslash}Xc@{}}
 \toprule
 Flag & Loss & Idea & Weight\\
 \midrule
@@ -138,7 +157,7 @@ Flag & Loss & Idea & Weight\\
 \code{adaptive\_exp} & adaptive\_exp, highlight & Replaces \emph{exp} by a per-region target that rises for bright and falls for noisy regions; penalises brightening bright pixels & 10, 20\\
 \code{temporal} & temporal & L1 between the output and the flow-warped previous output on reliable pixels & 10\\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 Targets, masks, $\sigma$ and the gain used inside the losses are detached. The total loss is the weighted sum of enabled terms, minimised with Adam (learning rate $10^{-4}$, weight decay $10^{-4}$, gradient clipping 0.1).
 
@@ -331,15 +350,28 @@ Quality is practically unchanged: PSNR and SSIM slightly \emph{increase} (smooth
 \subsection{Other settings we tried}
 Table~\ref{tab:tried} lists the remaining decisions, including those taken from the project history and notes rather than from experiments re-run for this report. The right-hand column says what evidence exists.
 
-\begin{table}[!htbp]
-\centering\small
-\begin{tabular}{p{3.4cm}p{6.0cm}p{5.2cm}}
+% Let this long table continue across pages instead of leaving a large empty area.
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{.22\linewidth}>{\raggedright\arraybackslash}p{.43\linewidth}>{\raggedright\arraybackslash}p{.31\linewidth}@{}}
+\caption{Settings tried, outcomes and evidence.}\label{tab:tried}\\
 \toprule
 Setting & Outcome & Evidence\\
 \midrule
+\endfirsthead
+\toprule
+Setting & Outcome & Evidence\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\small Continued on the next page}\\
+\endfoot
+\bottomrule
+\endlastfoot
 Training data: 96 synthetic procedural images, 40 epochs & Model flattened real photographs to grey; the checkpoint was removed & Project notes (\code{checkpoints/README.md})\\
 Training data: LOL low-light photos & Works; basis of all shipped weights & Sec.~\ref{sec:sweep}\\
-Adding normal-light and darkened copies to the training set & Did not fix the over-brightening & Project notes (\code{docs/IMPLEMENTATION.md}); not re-run\\
+Adding normal-light and darkened copies to the training set & Did not fix the over-brightening & Project notes (\code{docs/ARCHITECTURE.md}); not re-run\\
 Training length 5 / 10 / 15 / \dots\ / 40 epochs & 10 chosen for visual quality; 40 for benchmark score & Table~\ref{tab:sweep}\\
 \code{exposure\_target} 0.6 & Used for \emph{all} shipped checkpoints & Run configs\\
 \code{exposure\_target} 0.5 & Now the config default to reduce over-brightening; \textbf{not yet retrained or evaluated} & Commit history; configs\\
@@ -347,11 +379,8 @@ Per-step brightness/clipping diagnostics in training logs & Added so drift is vi
 Temporal term on synthetic pairs & Run trained; lower validation loss, not comparable (different data) & Fig.~\ref{fig:train}\\
 \code{curve\_scale} 1 to 0.125 & No quality loss, 2--3$\times$ faster & Table~\ref{tab:cs}\\
 13-row ablation matrix (3 seeds) & Defined in \code{configs/ablation\_matrix.py}; \textbf{not run} & No results exist\\
-\bottomrule
-\end{tabular}
-\caption{Settings tried, outcomes and evidence.}
-\label{tab:tried}
-\end{table}
+\end{longtable}
+\endgroup
 
 %--------------------------------------------------------------------
 \section{Discussion}
@@ -376,19 +405,6 @@ Temporal term on synthetic pairs & Run trained; lower validation loss, not compa
 \section{Conclusion}
 We delivered a complete low-light enhancement system: a small, noise-aware zero-reference model, a robust API, and a web app with built-in analysis. Our experiments on checkpoint selection show a clear tension between a benchmark metric and natural-looking results, and we chose the conservative 10-epoch model for deployment. Honest next steps are to run the ablation matrix, test the lower exposure target, evaluate on ordinary photographs and on video, and compare against other zero-reference methods.
 
-\section*{Team}
-\begin{center}
-\begin{tabular}{ll}
-\toprule
-Name & Roll number\\
-\midrule
-Jatin Purbia & B23CH11022\\
-Sharana Gouda Lakshetty & B23CH1042\\
-Rahul Ahuja & B23CH1037\\
-\bottomrule
-\end{tabular}
-\end{center}
-
 \section*{Reproducing the numbers}
 All figures and tables in Sec.~4 were produced by running the committed checkpoints in \code{core/checkpoints/} on the 15 LOL evaluation pairs in \code{core/data/LOL/eval15/} (CPU, full resolution). The training-curve figures read \code{core/runs/*/metrics.csv} and \code{val\_metrics.csv}.
 
@@ -402,11 +418,14 @@ All figures and tables in Sec.~4 were produced by running the committed checkpoi
 \bibitem{lai} W.-S.~Lai et al. Learning Blind Video Temporal Consistency. \emph{ECCV}, 2018.
 \end{thebibliography}
 
+\clearpage
 \appendix
 \section{Hyperparameters of the shipped configuration}
-\begin{table}[!htbp]
-\centering\small
-\begin{tabular}{ll}
+% Keep the appendix heading and table together; wrap long cells within the margins.
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{.52\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
 Parameter & Value\\
 \midrule
@@ -424,7 +443,7 @@ Seed & 17\\
 Exposure target (shipped weights) & 0.6\\
 Exposure target (current config default) & 0.5 (not retrained)\\
 \bottomrule
-\end{tabular}
-\end{table}
+\end{tabularx}
+\endgroup
 
 \end{document}

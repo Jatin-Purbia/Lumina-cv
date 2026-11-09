@@ -1,7 +1,7 @@
 """Baseline experiment: every hyperparameter explicit, all extension flags disabled.
 
 ``loss.exposure_target`` (0.5) was lowered from the original schema default of 0.6: the first
-over-brightening mitigation docs/IMPLEMENTATION.md named for the regression described there. This
+over-brightening mitigation docs/ARCHITECTURE.md named for the regression described there. This
 has not been retrained or re-evaluated against held-out ordinary photos; it narrows the gap on
 paper but is unverified. Watch ``brightness``/``clipped`` in metrics.csv/val_metrics.csv when
 retraining.

@@ -189,9 +189,21 @@ def test_evaluate_writes_the_csv_schema_and_prints_means(
         "clipping_fraction",
         "noise_estimate",
         "noise_estimate_input",
+        "mean_brightness",
+        "mean_brightness_input",
+        "contrast_std",
+        "contrast_std_input",
     }
     unpaired = {r["metric"] for r in rows if r["dataset"].startswith("unpaired")}
-    assert unpaired == {"clipping_fraction", "noise_estimate", "noise_estimate_input"}
+    assert unpaired == {
+        "clipping_fraction",
+        "noise_estimate",
+        "noise_estimate_input",
+        "mean_brightness",
+        "mean_brightness_input",
+        "contrast_std",
+        "contrast_std_input",
+    }
     clip = [r for r in rows if r["metric"] == "clipping_fraction"]
     assert all(r["input_clipping"] != "" for r in clip)
     assert all(r["mask_coverage"] != "" for r in rows if r["metric"].startswith("noise_estimate"))

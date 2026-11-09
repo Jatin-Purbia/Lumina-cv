@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "purpose": "normal-light preservation on held-out LOL training scenes",
+  "split_seed": 17,
+  "split_val_fraction": 0.1,
+  "validation_split_sha256": "e5369eb16380aedd32d0437cb121f13c73e1ce4139e4a3a8260b90f06540edb7",
+  "images": [
+    {
+      "scene_id": "124",
+      "file": "124.png",
+      "archive_member": "lol_dataset/our485/high/124.png",
+      "sha256": "7f2955236ece7ceacc1acc047b8e31142eb77be3199d7e33e85917054a1c6247"
+    },
+    {
+      "scene_id": "126",
+      "file": "126.png",
+      "archive_member": "lol_dataset/our485/high/126.png",
+      "sha256": "64c537b58027559f24785a863aed740240a9cdbfbd25563bb25aa706afd6afe0"
+    },
+    {
+      "scene_id": "144",
+      "file": "144.png",
+      "archive_member": "lol_dataset/our485/high/144.png",
+      "sha256": "1d3c84e67b7ec3377899cdbebf535b5722437291442d27258fd35c9dbf5c768a"
+    },
+    {
+      "scene_id": "15",
+      "file": "15.png",
+      "archive_member": "lol_dataset/our485/high/15.png",
+      "sha256": "a0365ed49ae05b36610db81d143505128435a8cd9227ac53327056f878e8a522"
+    },
+    {
+      "scene_id": "193",
+      "file": "193.png",
+      "archive_member": "lol_dataset/our485/high/193.png",
+      "sha256": "5d11762ffc1ba9ade7dca3a8dbd56fa0ac1d522a6d3bb62e28c410219806b356"
+    },
+    {
+      "scene_id": "198",
+      "file": "198.png",
+      "archive_member": "lol_dataset/our485/high/198.png",
+      "sha256": "0e0f81c1627919a605bac0f9c70a2b9740a914261da546cf458154f98d515fd3"
+    },
+    {
+      "scene_id": "207",
+      "file": "207.png",
+      "archive_member": "lol_dataset/our485/high/207.png",
+      "sha256": "f85b9df1bcc9beea97bb1b26a2152a53903748a44837c0bd135d6f5ddaec6888"
+    },
+    {
+      "scene_id": "210",
+      "file": "210.png",
+      "archive_member": "lol_dataset/our485/high/210.png",
+      "sha256": "2d9320480f7af4913368b62148c7f9815d499d76b046c908c7b5b87c196c31e4"
+    },
+    {
+      "scene_id": "212",
+      "file": "212.png",
+      "archive_member": "lol_dataset/our485/high/212.png",
+      "sha256": "00166d6e56c6e6f0d33f829a32ecd9afc836a607e2627345efc53163a2543250"
+    },
+    {
+      "scene_id": "213",
+      "file": "213.png",
+      "archive_member": "lol_dataset/our485/high/213.png",
+      "sha256": "0a8f322247229357c90fabd2935a873c98b315ff779670267d5b0e8cbf562462"
+    },
+    {
+      "scene_id": "229",
+      "file": "229.png",
+      "archive_member": "lol_dataset/our485/high/229.png",
+      "sha256": "10dc35a10910c44fdaf1a3cfb30666dbcdb5634d532be8054c9da6e57533539c"
+    },
+    {
+      "scene_id": "231",
+      "file": "231.png",
+      "archive_member": "lol_dataset/our485/high/231.png",
+      "sha256": "2f805940bcb447fa2a69afbfe2928075de25d07732c772983f7a2229ea1d0be6"
+    },
+    {
+      "scene_id": "237",
+      "file": "237.png",
+      "archive_member": "lol_dataset/our485/high/237.png",
+      "sha256": "0fa7a5d5fd09af14770be70c17918e4d8ac0213bb075e200b5b18afe6d3723c8"
+    },
+    {
+      "scene_id": "45",
+      "file": "45.png",
+      "archive_member": "lol_dataset/our485/high/45.png",
+      "sha256": "701ba07746b7e17b30b754457968aca9dfa8f582841f7b9ed14befbe333ad3dc"
+    },
+    {
+      "scene_id": "47",
+      "file": "47.png",
+      "archive_member": "lol_dataset/our485/high/47.png",
+      "sha256": "a44922159e84efcb0d865cd0d24851ed67244a14b4bde09e02ad372df4d448b4"
+    },
+    {
+      "scene_id": "50",
+      "file": "50.png",
+      "archive_member": "lol_dataset/our485/high/50.png",
+      "sha256": "7c99f57cbb0e1eddc85f71df5db22581c01681413348da0f8983a8a922577796"
+    },
+    {
+      "scene_id": "514",
+      "file": "514.png",
+      "archive_member": "lol_dataset/our485/high/514.png",
+      "sha256": "1eb087a51efc5c84e103bf8ef16da8a4519cf3bae6380faf62d4b55202f18499"
+    },
+    {
+      "scene_id": "528",
+      "file": "528.png",
+      "archive_member": "lol_dataset/our485/high/528.png",
+      "sha256": "e6e7e48b10c0fe0d546531009562bed9bd88495d0e48ff4bca68e35f64e92b40"
+    },
+    {
+      "scene_id": "53",
+      "file": "53.png",
+      "archive_member": "lol_dataset/our485/high/53.png",
+      "sha256": "48ae11adbe222f2f40465605451420bd3d305fd55dc984b657bc5498fbb497f2"
+    },
+    {
+      "scene_id": "532",
+      "file": "532.png",
+      "archive_member": "lol_dataset/our485/high/532.png",
+      "sha256": "b42e12c335dd95e1f22f61843d8aceec7713725ce77462f45e01333d186af4bf"
+    },
+    {
+      "scene_id": "537",
+      "file": "537.png",
+      "archive_member": "lol_dataset/our485/high/537.png",
+      "sha256": "f97ebf1ccc112313102c25da959c97042b292b25e89aea2d877120b5f09a446c"
+    },
+    {
+      "scene_id": "538",
+      "file": "538.png",
+      "archive_member": "lol_dataset/our485/high/538.png",
+      "sha256": "3da392d23c8cc60fbaa231a42bb5c9eb0ec6b5db90729f9f816311cb9d64025a"
+    },
+    {
+      "scene_id": "545",
+      "file": "545.png",
+      "archive_member": "lol_dataset/our485/high/545.png",
+      "sha256": "098f793e638002c0a5a8e898a53998de303f3368c70732856db422e6cde8e161"
+    },
+    {
+      "scene_id": "555",
+      "file": "555.png",
+      "archive_member": "lol_dataset/our485/high/555.png",
+      "sha256": "06090cd53973ab9b2b9c5988cb858c5f73d5568ad3962191db79ab7421d85fc3"
+    },
+    {
+      "scene_id": "586",
+      "file": "586.png",
+      "archive_member": "lol_dataset/our485/high/586.png",
+      "sha256": "6113b7ea23b120d79b86d94aa7040b672ee62f9b0e50bfc440740dc6b679d033"
+    },
+    {
+      "scene_id": "588",
+      "file": "588.png",
+      "archive_member": "lol_dataset/our485/high/588.png",
+      "sha256": "6113b7ea23b120d79b86d94aa7040b672ee62f9b0e50bfc440740dc6b679d033"
+    },
+    {
+      "scene_id": "59",
+      "file": "59.png",
+      "archive_member": "lol_dataset/our485/high/59.png",
+      "sha256": "39e029bc9d263ae1e7be3adc619c1f4bd0bfcb9cd3b4c81799ca02350bb68064"
+    },
+    {
+      "scene_id": "598",
+      "file": "598.png",
+      "archive_member": "lol_dataset/our485/high/598.png",
+      "sha256": "fc65823273f71de5b625ce4ed8f82a9603e3f2a9eb28f7576e92fa1ef6270c44"
+    },
+    {
+      "scene_id": "60",
+      "file": "60.png",
+      "archive_member": "lol_dataset/our485/high/60.png",
+      "sha256": "59b527f01afe6272b53489c91fc637f85c2d423ea60f7b94d6cf8c87e3e38c42"
+    },
+    {
+      "scene_id": "601",
+      "file": "601.png",
+      "archive_member": "lol_dataset/our485/high/601.png",
+      "sha256": "156fa8411078b61d5596b1c133132d2c8f42b6e85dd5d59ea36080997297f8da"
+    },
+    {
+      "scene_id": "609",
+      "file": "609.png",
+      "archive_member": "lol_dataset/our485/high/609.png",
+      "sha256": "d768f1deda0e57cbf754dbc582f02d399f4b81e8813d1b19aa3ec2bb04e3d412"
+    },
+    {
+      "scene_id": "64",
+      "file": "64.png",
+      "archive_member": "lol_dataset/our485/high/64.png",
+      "sha256": "1683b1577ff6c0070c94a89f5a4c7da49f2f64abc56258ee9c94aaf92bd54067"
+    },
+    {
+      "scene_id": "648",
+      "file": "648.png",
+      "archive_member": "lol_dataset/our485/high/648.png",
+      "sha256": "da658be31fdddbe8c3ef87a837c663bb4252c020173fc7897f9028c3e2d95df5"
+    },
+    {
+      "scene_id": "674",
+      "file": "674.png",
+      "archive_member": "lol_dataset/our485/high/674.png",
+      "sha256": "7876a01a4813fd2fe313d5398a20c59bdaa111f295e6bcbfef0b77bf4de1e4ab"
+    },
+    {
+      "scene_id": "677",
+      "file": "677.png",
+      "archive_member": "lol_dataset/our485/high/677.png",
+      "sha256": "c1f9641c38a0055c3f0dfb5436065cee215bfa95e2293704c4221ac7eba6bd2f"
+    },
+    {
+      "scene_id": "694",
+      "file": "694.png",
+      "archive_member": "lol_dataset/our485/high/694.png",
+      "sha256": "e298e256e10d3ca05dabb6eb9a6f5d29e265bad7615c61a60570bdcc1340c8a2"
+    },
+    {
+      "scene_id": "699",
+      "file": "699.png",
+      "archive_member": "lol_dataset/our485/high/699.png",
+      "sha256": "4b5b22ab4e87e48732d82dc523f531080d927e44ece3d00d65007cc0c17f5010"
+    },
+    {
+      "scene_id": "714",
+      "file": "714.png",
+      "archive_member": "lol_dataset/our485/high/714.png",
+      "sha256": "b7a9be54d0f8a9842d5b61ff3b44a486c462b701bf2624c566f51bb7013461dc"
+    },
+    {
+      "scene_id": "734",
+      "file": "734.png",
+      "archive_member": "lol_dataset/our485/high/734.png",
+      "sha256": "28155362f828f1b372a91b9f76f632fe7431281f72616d15a1dbade36d0de1d0"
+    },
+    {
+      "scene_id": "736",
+      "file": "736.png",
+      "archive_member": "lol_dataset/our485/high/736.png",
+      "sha256": "3d4d286404f036e3f6f213a65d18f3449474c489a94eb7e7cadfcf0c31af61a6"
+    },
+    {
+      "scene_id": "745",
+      "file": "745.png",
+      "archive_member": "lol_dataset/our485/high/745.png",
+      "sha256": "db4c57dcfa0571ab70e49006ecde993170a9b2dbf63bcc9aceb7c627b42947e3"
+    },
+    {
+      "scene_id": "75",
+      "file": "75.png",
+      "archive_member": "lol_dataset/our485/high/75.png",
+      "sha256": "9e0bea42a8ab891e830e6efe777a22cf44172c06d38448a7617ec28f6b659523"
+    },
+    {
+      "scene_id": "769",
+      "file": "769.png",
+      "archive_member": "lol_dataset/our485/high/769.png",
+      "sha256": "f6dbb2dca0b40332a6ec44707b880a72a6919fc52c358c9bd10db6a21b19b003"
+    },
+    {
+      "scene_id": "777",
+      "file": "777.png",
+      "archive_member": "lol_dataset/our485/high/777.png",
+      "sha256": "2290e87526a103f2c51dc390557762da8eed35e2a43660043a69b1308a0be635"
+    },
+    {
+      "scene_id": "784",
+      "file": "784.png",
+      "archive_member": "lol_dataset/our485/high/784.png",
+      "sha256": "235a4ae35fa13af06fce2fc1bef2c3a2ddd3a6dae0b2df9bb5878b10ec8994a2"
+    },
+    {
+      "scene_id": "80",
+      "file": "80.png",
+      "archive_member": "lol_dataset/our485/high/80.png",
+      "sha256": "b7539851884c1550a2420c7d6247b3d6d149bcd7967a9237f68e2d00a6facf28"
+    },
+    {
+      "scene_id": "81",
+      "file": "81.png",
+      "archive_member": "lol_dataset/our485/high/81.png",
+      "sha256": "bd04392edd28108bff0c326c57eddac82a5e77435d2ea6037c4168114787edba"
+    },
+    {
+      "scene_id": "83",
+      "file": "83.png",
+      "archive_member": "lol_dataset/our485/high/83.png",
+      "sha256": "f42bf21beb71ab001690dba0f8b880a3bcf6965d6995e11d1cbf5d2ac8263143"
+    }
+  ]
+}

@@ -32,6 +32,7 @@ export const KNOWN_ERROR_CODES = [
   "unsupported_type",
   "bad_option",
   "model_not_loaded",
+  "server_busy",
 ] as const;
 
 export type KnownErrorCode = (typeof KNOWN_ERROR_CODES)[number];

@@ -385,7 +385,7 @@ def _brightening_drift(enhanced: Tensor) -> dict[str, float]:
 
     These are diagnostics only, never weighted into the objective: the paired LOL loss used
     for training/validation cannot see whether the model over-brightens ordinary photos (see
-    docs/IMPLEMENTATION.md Limits), so this tracks whether the *training* distribution itself
+    docs/ARCHITECTURE.md Limits), so this tracks whether the *training* distribution itself
     is drifting toward saturation as a cheap proxy, logged next to the loss terms.
     """
     return {

@@ -23,6 +23,7 @@ const ROUTES: Readonly<Record<string, "GET" | "POST">> = {
 };
 const REQUEST_HEADERS = ["content-type", "content-length", "accept", "x-request-id"] as const;
 const RESPONSE_HEADERS = [
+  "retry-after",
   "content-type",
   "content-length",
   "cache-control",

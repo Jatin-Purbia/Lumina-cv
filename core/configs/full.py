@@ -1,6 +1,7 @@
 """Untuned extension starting point (all extension flags on); not a validated quality result.
 
-``loss.exposure_target`` is 0.5, not the schema default of 0.6: see configs/baseline.py for why.
+``loss.exposure_target`` is 0.5, lowered from the original default of 0.6; see
+configs/baseline.py for why. For still-photo experiments use configs/photo.py.
 """
 
 CONFIG = {

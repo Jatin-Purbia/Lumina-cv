@@ -15,10 +15,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # CPU-only torch keeps the image small; headless OpenCV avoids GUI system libraries.
-RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.2" \
+RUN pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2" \
  && pip install "numpy>=1.26" "opencv-python-headless>=4.8" "scikit-image>=0.22" \
       "pillow>=10" "tqdm>=4.66" "pyyaml>=6" \
-      "fastapi>=0.115" "uvicorn>=0.30" "python-multipart>=0.0.9"
+      "fastapi>=0.115" "starlette>=0.46.0" "uvicorn>=0.30" "python-multipart>=0.0.18"
 
 COPY pyproject.toml README.md ./
 COPY src ./src
@@ -30,6 +30,6 @@ USER lumina
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4).status == 200 else 1)"
+  CMD python -c "import os,urllib.request,sys; port=os.environ.get('LUMINA_PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/api/v1/health', timeout=4).status == 200 else 1)"
 
 CMD ["python", "-m", "nta_zerodce.api"]

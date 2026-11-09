@@ -11,14 +11,15 @@ requires-python = ">=3.10"
 dependencies = ["torch>=2.2", "numpy>=1.26", "opencv-python>=4.8", "scikit-image>=0.22", "pillow>=10", "tqdm>=4.66", "pyyaml>=6"]
 
 [project.optional-dependencies]
-api = ["fastapi>=0.115", "uvicorn>=0.30", "python-multipart>=0.0.9"]
+api = ["fastapi>=0.115", "starlette>=0.46.0", "uvicorn>=0.30", "python-multipart>=0.0.18"]
 dev = [
   "pytest>=8",
   "ruff==0.12.7",
   "mypy>=1.10,<2",
   "fastapi>=0.115",
+  "starlette>=0.46.0",
   "uvicorn>=0.30",
-  "python-multipart>=0.0.9",
+  "python-multipart>=0.0.18",
   "httpx>=0.27",
 ]
 
@@ -35,7 +36,7 @@ select = ["E4", "E7", "E9", "F", "I", "UP", "ANN"]
 [tool.mypy]
 # numpy 2.5+ ships stubs using Python 3.12 `type` statements, which mypy rejects when it
 # targets 3.10, and mypy ignores follow_imports=skip for installed packages. Type-check
-# against 3.12; runtime 3.10 compatibility is enforced by ruff target-version and CI on 3.10.
+# against 3.12; runtime 3.10 compatibility is checked by ruff and the CI test matrix.
 python_version = "3.12"
 strict = true
 follow_imports = "silent"

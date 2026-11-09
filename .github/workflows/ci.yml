@@ -9,8 +9,16 @@ concurrency:
   cancel-in-progress: true
 jobs:
   core:
-    name: core
+    name: core (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.12']
+    env:
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
     defaults:
       run:
         working-directory: core
@@ -18,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: core/pyproject.toml
       - name: Install CPU PyTorch
@@ -27,18 +35,9 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - run: python -m ruff check .
       - run: python -m ruff format --check .
-      # mypy is not enforced yet: `python -m mypy` currently reports ~40 pre-existing errors
-      # (numpy's newer stubs require explicit ndarray[...] generics project-wide, plus a
-      # starlette API drift in api/app.py) unrelated to any single change. Fix those, then
-      # add a blocking `python -m mypy` step back here.
-      #
-      # test_api.py and test_e2e.py are excluded: the installed starlette (>=0.30, per
-      # pyproject) changed MultiPartParser's constructor (no more max_part_size) and dropped
-      # the settable spool_max_size attribute that api/app.py._read_upload relies on to keep
-      # uploads in memory, so every upload request currently raises a TypeError. This is a
-      # real, pre-existing bug independent of this workflow; pin a compatible starlette or
-      # update _read_upload, then drop this --ignore.
-      - run: python -m pytest --ignore=tests/test_api.py --ignore=tests/test_e2e.py
+      - run: python -m mypy
+        if: matrix.python == '3.12'
+      - run: python -m pytest
       - name: CLI help (no datasets or checkpoints required)
         run: |
           python scripts/train.py --help
@@ -46,6 +45,9 @@ jobs:
           python scripts/ablate.py --help
           python scripts/enhance.py --help
           python scripts/make_synthetic_data.py --help
+          python scripts/benchmark_inference.py --help
+          python scripts/prepare_photo_validation.py --help
+          python scripts/check_photo_regressions.py --help
   web:
     runs-on: ubuntu-latest
     defaults:

@@ -58,6 +58,11 @@ export function describeError(error: unknown): UserFacingError {
     };
   }
   switch (error.code) {
+    case "server_busy":
+      return {
+        title: "The enhancement server is busy",
+        message: "Another image is being processed. Wait a moment, then try again.",
+      };
     case "model_not_loaded":
       return {
         title: "The model is not loaded yet",

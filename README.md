@@ -44,19 +44,21 @@ it is not stored in git. Running the script again does nothing if the data is al
 ## 3. Train the model (once)
 
 ```powershell
-python scripts/train.py --config configs/full.py --no-temporal --device cpu --epochs 10 --run-name lol
+python scripts/train.py --config configs/photo.py --device cpu --run-name photo_target06
 ```
 
 - Takes about 20 to 30 minutes on a CPU. Use `--device cuda` if you have a GPU.
-- **Keep `--epochs` small (10).** On this data, longer training makes the model brighten
+- **The photo preset starts with 10 epochs and saves every epoch.** On this data, longer training makes the model brighten
   everything too much: by epoch 15 ordinary photos start to show blown-out white patches, and by
-  epoch 25 they wash out completely. Ten epochs gives natural, moderate enhancement. It
-  under-brightens the very darkest scenes (the LOL test set) rather than ruining normal photos.
-- `--no-temporal` skips the video-consistency part, which the photo app does not use and which
-  doubles the training time. Drop it to train the full model.
-- Output: `core/checkpoints/lol/final.pt`, plus logs in `core/runs/lol/` (`metrics.csv`,
-  `val_metrics.csv`). Other options: `python scripts/train.py --help`. Configs are Python files in
-  `core/configs/`.
+  epoch 25 they wash out completely. The shipped 10-epoch model is conservative and can
+  under-brighten extremely dark scenes. The photo preset retains the shipped exposure target
+  of 0.6. A tested 0.5 alternative lost low-light detail and is kept as an explicit experiment
+  in `configs/photo_target05.py`, with results in the improvement notes.
+- The photo preset disables temporal training. Use `configs/full.py` for the video experiment.
+- Output: `core/checkpoints/photo_target06/`, plus logs in `core/runs/photo_target06/`.
+  Use a new run name to preserve existing checkpoints. The API continues serving the shipped
+  weights until you explicitly choose a validated candidate in `.env`.
+- Before promoting a candidate, follow [photo training and preservation checks](core/docs/ARCHITECTURE.md#still-photo-training-and-checkpoint-promotion).
 
 ## 4. Start the API server
 
@@ -64,8 +66,8 @@ In the same terminal (venv activated, inside `core`):
 
 ```powershell
 copy .env.example .env
-python -m nta_zerodce.api
-```
+`python -m nta_zerodce.api
+````
 
 `.env` (gitignored) lists every checkpoint in `checkpoints/` with one `LUMINA_CHECKPOINT=` line
 active and the rest commented out. To serve a different model, move the `#` to another line and
@@ -110,6 +112,9 @@ python scripts/evaluate.py --config configs/full.py --checkpoint checkpoints/lol
 
 # ablation matrix (13 variants x 3 seeds; list the runs without training)
 python scripts/ablate.py --matrix configs/ablation_matrix.py --output runs/ablations --dry-run
+
+# measure CPU speed and pixel differences from full-resolution estimation
+python scripts/benchmark_inference.py --checkpoint checkpoints/lol/final.pt --input ../public --output runs/inference_benchmark.json
 ```
 
 ## Tests
@@ -119,5 +124,5 @@ cd core; python -m pytest        # about 2,060 tests, CPU, no data or network ne
 cd ..\web; npm test
 ```
 
-More detail on the design, API and limits: [core/docs/ARCHITECTURE.md](core/docs/ARCHITECTURE.md)
-and [core/docs/IMPLEMENTATION.md](core/docs/IMPLEMENTATION.md).
+See [ARCHITECTURE.md](core/docs/ARCHITECTURE.md) for the design, API, implementation,
+training guidance, limits, and measured settings.

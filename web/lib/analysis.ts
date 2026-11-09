@@ -11,6 +11,8 @@ export interface Metrics {
   mean: number;
   /** Mean brightness of the pixels that were dark in the original image, 0-255. */
   darkMean: number;
+  /** Number of originally dark pixels used for darkMean; zero means no shadow sample. */
+  darkCount: number;
   /** Standard deviation of brightness, 0-255 (global contrast). */
   contrast: number;
   /** Mean absolute Laplacian of brightness; a noise and fine-texture proxy. */
@@ -97,6 +99,7 @@ export function analyze(p: Pixels, darkMask: Uint8Array): Metrics {
   return {
     mean,
     darkMean: darkCount > 0 ? darkSum / darkCount : mean,
+    darkCount,
     contrast: Math.sqrt(variance / count),
     noise: lapCount > 0 ? lap / lapCount : 0,
     saturation: saturation / count,
@@ -121,7 +124,7 @@ export function gammaPixels(p: Pixels, gamma: number): Pixels {
   return { data, width: p.width, height: p.height };
 }
 
-/** The gamma whose output has (about) the given mean brightness; found by bisection on the channel histogram. */
+/** Closest gamma in [0.1, 3] to the target mean; some inputs cannot reach that mean. */
 export function matchGamma(p: Pixels, targetMean: number): number {
   const counts = new Float64Array(256);
   for (let i = 0; i < p.data.length; i += 4) {
@@ -157,6 +160,7 @@ export interface Analysis {
   enhanced: Metrics;
   baselines: Comparison[];
   matchedGamma: number;
+  brightnessMatched: boolean;
   insights: string[];
 }
 
@@ -166,51 +170,58 @@ const pct = (v: number): string => `${Math.abs(Math.round(v * 100))}%`;
 /** Plain-language findings, derived only from the measured numbers. */
 export function describe(original: Metrics, enhanced: Metrics, matched: Metrics): string[] {
   const out: string[] = [];
+  const brightnessMatched = Math.abs(matched.mean - enhanced.mean) <= 1;
 
   const darkRatio = enhanced.darkMean / Math.max(original.darkMean, 1);
-  if (darkRatio < 1.15) {
+  if (original.darkCount === 0) {
+    out.push("No pixels met the shadow threshold in the original; shadow lift cannot be measured.");
+  } else if (enhanced.darkMean < original.darkMean * 0.95) {
+    out.push(`Originally dark pixels became darker (${num(original.darkMean)} to ${num(enhanced.darkMean)} out of 255).`);
+  } else if (darkRatio < 1.15) {
     out.push(
       `Shadows were barely lifted: dark areas went from ${num(original.darkMean)} to ${num(enhanced.darkMean)} (out of 255).`,
     );
+  } else if (original.darkMean < 1) {
+    out.push(`Originally dark pixels brightened from ${num(original.darkMean)} to ${num(enhanced.darkMean)} out of 255.`);
   } else {
     out.push(
       `Dark areas are ${num(darkRatio, 1)}x brighter (${num(original.darkMean)} to ${num(enhanced.darkMean)} out of 255); overall brightness went from ${num(original.mean)} to ${num(enhanced.mean)}.`,
     );
   }
 
-  if (matched.darkMean > 0 && enhanced.darkMean > matched.darkMean * 1.08) {
+  if (original.darkCount > 0 && brightnessMatched && matched.darkMean > 0 && enhanced.darkMean > matched.darkMean * 1.08) {
     out.push(
-      `At the same overall brightness, shadows are lifted more than plain brightening would manage (${num(enhanced.darkMean)} against ${num(matched.darkMean)}), so bright areas are left alone.`,
+      `At approximately the same overall brightness, originally dark pixels are brighter than with the gamma baseline (${num(enhanced.darkMean)} against ${num(matched.darkMean)}).`,
     );
   }
 
   const noiseChange = (enhanced.noise - original.noise) / Math.max(original.noise, 1e-6);
   if (noiseChange < -0.08) {
-    out.push(`Noise and fine grain are ${pct(noiseChange)} lower than the original.`);
+    out.push(`Fine pixel variation is ${pct(noiseChange)} lower. This can reflect less noise, smoother texture or lost detail.`);
   } else if (noiseChange > 0.08) {
-    out.push(`Noise and fine grain are ${pct(noiseChange)} higher than the original (brightening amplified them).`);
+    out.push(`Fine pixel variation is ${pct(noiseChange)} higher. This measure includes noise, texture and edges.`);
   } else {
-    out.push("Noise and fine grain are about the same as the original.");
+    out.push("Fine pixel variation is about the same as the original; this measure includes noise, texture and edges.");
   }
 
   const satRatio = enhanced.saturation / Math.max(original.saturation, 1e-6);
   const matchedRatio = matched.saturation / Math.max(original.saturation, 1e-6);
-  if (satRatio >= 0.93) {
-    out.push(`Color is preserved (saturation ${pct(satRatio)} of the original).`);
+  if (original.saturation < 1e-6) {
+    out.push(`Mean saturation changed from ${num(original.saturation, 2)} to ${num(enhanced.saturation, 2)}. Saturation alone does not measure color fidelity.`);
   } else {
-    out.push(`Colors look ${pct(1 - satRatio)} less saturated than the original.`);
+    out.push(`Mean saturation is ${pct(satRatio)} of the original. This does not establish whether hues were preserved.`);
   }
-  if (matchedRatio < satRatio - 0.08) {
+  if (brightnessMatched && original.saturation >= 1e-6 && matchedRatio < satRatio - 0.08) {
     out.push(
-      `A plain brightness boost to the same overall level would have washed out color more (saturation ${pct(matchedRatio)} of the original).`,
+      `At approximately the same brightness, the gamma baseline has lower mean saturation (${pct(matchedRatio)} of the original).`,
     );
   }
 
   const clippedChange = enhanced.clipped - original.clipped;
   if (clippedChange > 2) {
-    out.push(`Warning: ${num(clippedChange, 1)} percentage points more of the image is near-white (highlights clipped).`);
+    out.push(`Warning: the near-white pixel share increased by ${num(clippedChange, 1)} percentage points. Inspect bright areas for lost detail.`);
   } else {
-    out.push("No meaningful highlight clipping was introduced.");
+    out.push(`Near-white pixels changed from ${num(original.clipped, 1)}% to ${num(enhanced.clipped, 1)}%. This measure does not detect clipping of individual color channels.`);
   }
 
   const contrastChange = enhanced.contrast - original.contrast;
@@ -222,9 +233,9 @@ export function describe(original: Metrics, enhanced: Metrics, matched: Metrics)
 
   const entropyChange = enhanced.entropy - original.entropy;
   if (entropyChange < -0.15) {
-    out.push(`Some tonal variety was smoothed away (tonal richness ${num(original.entropy, 2)} to ${num(enhanced.entropy, 2)} bits).`);
+    out.push(`Brightness histogram entropy decreased from ${num(original.entropy, 2)} to ${num(enhanced.entropy, 2)} bits.`);
   } else if (entropyChange > 0.15) {
-    out.push(`More tonal variety is visible (tonal richness ${num(original.entropy, 2)} to ${num(enhanced.entropy, 2)} bits).`);
+    out.push(`Brightness histogram entropy increased from ${num(original.entropy, 2)} to ${num(enhanced.entropy, 2)} bits.`);
   }
 
   return out;
@@ -237,15 +248,17 @@ export function analyzePair(original: Pixels, enhanced: Pixels): Analysis {
   const enhancedMetrics = analyze(enhanced, mask);
   const matchedGamma = matchGamma(original, enhancedMetrics.mean);
   const matched = analyze(gammaPixels(original, matchedGamma), mask);
+  const brightnessMatched = Math.abs(matched.mean - enhancedMetrics.mean) <= 1;
   const strong = analyze(gammaPixels(original, 0.4), mask);
   return {
     original: originalMetrics,
     enhanced: enhancedMetrics,
     matchedGamma,
+    brightnessMatched,
     baselines: [
       {
-        label: "Plain brightening, same overall brightness",
-        note: `gamma ${matchedGamma.toFixed(2)}`,
+        label: brightnessMatched ? "Gamma baseline, approximately matched brightness" : "Gamma baseline, closest available brightness",
+        note: `gamma ${matchedGamma.toFixed(2)}${brightnessMatched ? "" : `; brightness ${num(matched.mean)} versus ${num(enhancedMetrics.mean)} (target not reached)`}`,
         metrics: matched,
       },
       { label: "Strong plain brightening", note: "gamma 0.40", metrics: strong },

@@ -14,7 +14,8 @@ export const HEALTH_INTERVAL_MS = 15_000;
 
 /**
  * Polls /health on a timer and whenever the window regains focus or becomes
- * visible. Loads /options once the server is reachable (and again after a failure).
+ * visible. Refreshes /options with each successful health check, so server restarts
+ * and checkpoint changes do not leave stale limits or defaults in an open page.
  */
 export function useServerInfo(intervalMs: number = HEALTH_INTERVAL_MS): {
   health: HealthState;
@@ -23,12 +24,12 @@ export function useServerInfo(intervalMs: number = HEALTH_INTERVAL_MS): {
 } {
   const [health, setHealth] = useState<HealthState>({ phase: "checking" });
   const [options, setOptions] = useState<OptionsResponse | null>(null);
-  const optionsLoaded = useRef(false);
   const inFlight = useRef<AbortController | null>(null);
   const optionsFlight = useRef<AbortController | null>(null);
 
   const refresh = useCallback(() => {
     inFlight.current?.abort();
+    optionsFlight.current?.abort();
     const controller = new AbortController();
     inFlight.current = controller;
 
@@ -36,22 +37,21 @@ export function useServerInfo(intervalMs: number = HEALTH_INTERVAL_MS): {
       .then((h) => {
         if (controller.signal.aborted) return;
         setHealth(h.model_loaded ? { phase: "ready", health: h } : { phase: "no-model", health: h });
-        if (!optionsLoaded.current) {
-          optionsLoaded.current = true;
-          const optionsController = new AbortController();
-          optionsFlight.current = optionsController;
-          getOptions(optionsController.signal)
-            .then((o) => {
-              if (!optionsController.signal.aborted) setOptions(o);
-            })
-            .catch(() => {
-              // Allow the next health check to retry /options.
-              optionsLoaded.current = false;
-            });
-        }
+        const optionsController = new AbortController();
+        optionsFlight.current = optionsController;
+        getOptions(optionsController.signal)
+          .then((o) => {
+            if (!optionsController.signal.aborted) setOptions(o);
+          })
+          .catch(() => {
+            if (!optionsController.signal.aborted) setOptions(null);
+          });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setHealth({ phase: "unreachable" });
+        if (!controller.signal.aborted) {
+          setHealth({ phase: "unreachable" });
+          setOptions(null);
+        }
       });
   }, []);
 

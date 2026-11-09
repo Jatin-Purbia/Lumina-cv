@@ -109,6 +109,7 @@ describe("enhance", () => {
     [415, "unsupported_type"],
     [422, "bad_option"],
     [503, "model_not_loaded"],
+    [503, "server_busy"],
   ])("maps HTTP %i %s to a typed ApiError", async (status, code) => {
     mockFetch(errorResponse(status, code));
     const error = await enhance({ file }).catch((e: unknown) => e);
@@ -168,5 +169,12 @@ describe("describeError", () => {
       message: "boom",
     });
     expect(describeError(new Error("x")).title).toBe("Something went wrong");
+  });
+
+  it("explains that a busy server can be retried without changing the model", () => {
+    const message = make({ kind: "api", status: 503, code: "server_busy" });
+    expect(message.title).toContain("busy");
+    expect(message.message).toContain("Wait a moment");
+    expect(message.message).not.toContain("checkpoint");
   });
 });

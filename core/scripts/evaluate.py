@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", default=None, help="Checkpoint file (required)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT, help="Output CSV path")
     parser.add_argument(
+        "--unpaired", default=None, help="Override unpaired photo validation directory"
+    )
+    parser.add_argument(
         "--run-name", default=None, help="Value of the CSV run column (default from checkpoint)"
     )
     return parser
@@ -77,7 +80,7 @@ def run(args: argparse.Namespace) -> None:
     model, config, device = load_inference_model(
         checkpoint,
         args.config,
-        overrides_from_args(args),
+        {**overrides_from_args(args), "paths.unpaired": args.unpaired},
         args.device if args.device is not None else "auto",
     )
     run_name = args.run_name if args.run_name is not None else _default_run_name(checkpoint)

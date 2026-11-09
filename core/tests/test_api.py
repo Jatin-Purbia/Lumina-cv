@@ -557,6 +557,7 @@ def test_cors_disabled_by_default_and_enabled_by_setting(
         allowed = cors.get(f"{BASE}/health", headers=origin)
         assert allowed.headers["access-control-allow-origin"] == "http://localhost:3000"
         assert "X-Lumina-Size" in allowed.headers["access-control-expose-headers"]
+        assert "Retry-After" in allowed.headers["access-control-expose-headers"]
         other = cors.get(f"{BASE}/health", headers={"Origin": "http://evil.example"})
         assert "access-control-allow-origin" not in other.headers
 
@@ -735,5 +736,48 @@ def test_concurrency_limit_is_respected_and_does_not_deadlock(
     with TestClient(create_app(custom)) as c:
         statuses = _run_parallel(c, 8, png_bytes())
         assert c.get(f"{BASE}/health").status_code == 200
-    assert statuses == [200] * 8
+    assert all(status in (200, 503) for status in statuses)
+    assert 200 in statuses
     assert 1 <= peak <= limit
+
+
+def test_busy_upload_is_rejected_before_reading_body_and_capacity_recovers(
+    checkpoint: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only admitted uploads retain bytes; overload, validation and success do not leak slots."""
+    entered = threading.Event()
+    release = threading.Event()
+    body_read = threading.Event()
+    source = png_bytes()
+
+    def blocked_pipeline(
+        runtime: app_module.Runtime, data: bytes, image_format: str, curve_scale: float
+    ) -> tuple[bytes, int, int, int]:
+        entered.set()
+        assert release.wait(timeout=15)
+        return source, 48, 32, 0
+
+    def body() -> Iterator[bytes]:
+        body_read.set()
+        yield b"this body must not be consumed"
+
+    monkeypatch.setattr(app_module, "_run_pipeline", blocked_pipeline)
+    custom = Settings(checkpoint=checkpoint, device="cpu", max_concurrency=1)
+    with TestClient(create_app(custom)) as client, ThreadPoolExecutor(max_workers=1) as pool:
+        running = pool.submit(post, client, source)
+        try:
+            assert entered.wait(timeout=15)
+            busy = client.post(
+                f"{BASE}/enhance",
+                content=body(),
+                headers={"Content-Type": "multipart/form-data; boundary=unused"},
+            )
+            assert_error(busy, 503, "server_busy")
+            assert busy.headers["Retry-After"] == "1"
+            assert not body_read.is_set()
+            assert client.get(f"{BASE}/health").json()["model_loaded"] is True
+        finally:
+            release.set()
+        assert running.result(timeout=15).status_code == 200
+        assert_error(post(client, b""), 400, "invalid_image")
+        assert post(client, source).status_code == 200

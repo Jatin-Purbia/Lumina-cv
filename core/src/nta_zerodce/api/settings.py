@@ -48,7 +48,8 @@ class Settings:
         max_pixels: ``LUMINA_MAX_PIXELS``; largest accepted width x height (bounds memory).
         default_curve_scale: ``LUMINA_DEFAULT_CURVE_SCALE``; ``None`` uses the model config's
             ``model.curve_scale``.
-        max_concurrency: ``LUMINA_MAX_CONCURRENCY``; simultaneous decode+inference+encode jobs.
+        max_concurrency: ``LUMINA_MAX_CONCURRENCY``; simultaneous upload+inference jobs.
+            Additional enhancement requests receive 503 ``server_busy`` without reading a body.
         cors_origins: ``LUMINA_CORS_ORIGINS``; allowed browser origins (empty means none).
         host: ``LUMINA_HOST``; bind address used by ``python -m nta_zerodce.api``.
         port: ``LUMINA_PORT``; bind port used by ``python -m nta_zerodce.api``.

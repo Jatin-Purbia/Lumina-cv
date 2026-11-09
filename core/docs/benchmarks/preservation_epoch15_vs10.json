@@ -1,0 +1,150 @@
+{
+  "purpose": "Demonstrate preservation regression detection; not a universal quality ranking",
+  "validation_sample_count": 48,
+  "validation_split_sha256": "e5369eb16380aedd32d0437cb121f13c73e1ce4139e4a3a8260b90f06540edb7",
+  "reference_checkpoint_sha256": "efd25e47d0a53daa052f344d89a63e0b1e1338cc593ea7169909eb02fc445297",
+  "candidate_checkpoint_sha256": "c6143ec70301ca7cc45628ad9f9e86eda2ca71338040007a274378f26e793e4a",
+  "limits_are_illustrative": true,
+  "limits": {
+    "max_brightness_increase": 0.05,
+    "max_contrast_drop": 0.02,
+    "max_clipping_increase": 0.01
+  },
+  "reference_summary": [
+    {
+      "dataset": "unpaired",
+      "metric": "clipping_fraction",
+      "mean": 0.010339409755128296,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "mean_brightness_input",
+      "mean": 0.49272081318000954,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "contrast_std_input",
+      "mean": 0.1802845161097745,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "mean_brightness",
+      "mean": 0.554198736945788,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "contrast_std",
+      "mean": 0.16123764729127288,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "noise_estimate",
+      "mean": 0.004445949671207927,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "noise_estimate_input",
+      "mean": 0.005144320966792293,
+      "count": 48,
+      "excluded_count": 0
+    }
+  ],
+  "candidate_summary": [
+    {
+      "dataset": "unpaired",
+      "metric": "clipping_fraction",
+      "mean": 0.01207673622594522,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "mean_brightness_input",
+      "mean": 0.49272081318000954,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "contrast_std_input",
+      "mean": 0.1802845161097745,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "mean_brightness",
+      "mean": 0.5770600369820992,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "contrast_std",
+      "mean": 0.16421201343958577,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "noise_estimate",
+      "mean": 0.0043888264093160005,
+      "count": 48,
+      "excluded_count": 0
+    },
+    {
+      "dataset": "unpaired",
+      "metric": "noise_estimate_input",
+      "mean": 0.005144320966792293,
+      "count": 48,
+      "excluded_count": 0
+    }
+  ],
+  "failures": [
+    {
+      "sample_id": "126",
+      "metric": "clipping_fraction",
+      "reference": 0.005170833319425583,
+      "candidate": 0.033929165452718735,
+      "change": 0.028758332133293152,
+      "limit": 0.01
+    },
+    {
+      "sample_id": "53",
+      "metric": "clipping_fraction",
+      "reference": 0.03409166634082794,
+      "candidate": 0.04884999990463257,
+      "change": 0.014758333563804626,
+      "limit": 0.01
+    },
+    {
+      "sample_id": "598",
+      "metric": "mean_brightness",
+      "reference": 0.4235321283340454,
+      "candidate": 0.5056808590888977,
+      "change": 0.0821487307548523,
+      "limit": 0.05
+    },
+    {
+      "sample_id": "769",
+      "metric": "mean_brightness",
+      "reference": 0.32300856709480286,
+      "candidate": 0.38442856073379517,
+      "change": 0.06141999363899231,
+      "limit": 0.05
+    }
+  ],
+  "decision": "Keep shipped epoch10 weights; epoch15 fails the illustrative per-photo checks"
+}

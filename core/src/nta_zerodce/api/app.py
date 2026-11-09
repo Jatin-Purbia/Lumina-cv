@@ -34,6 +34,7 @@ from nta_zerodce.api.errors import (
     INTERNAL_ERROR,
     INVALID_IMAGE,
     MODEL_NOT_LOADED,
+    SERVER_BUSY,
     TOO_LARGE,
     ApiError,
     error_body,
@@ -61,7 +62,7 @@ _CURVE_SCALE = re.compile(r"^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)
 _MAX_FORM_FILES = 4
 _MAX_FORM_FIELDS = 16
 _MAX_FIELD_BYTES = 1024
-_EXPOSED_HEADERS = ["X-Lumina-Elapsed-Ms", "X-Lumina-Size", "X-Request-Id"]
+_EXPOSED_HEADERS = ["X-Lumina-Elapsed-Ms", "X-Lumina-Size", "X-Request-Id", "Retry-After"]
 
 
 class StartupError(RuntimeError):
@@ -327,18 +328,33 @@ def _build_router() -> APIRouter:
         runtime = _runtime(request)
         if runtime is None or runtime.model is None:
             raise ApiError(503, MODEL_NOT_LOADED, "No model checkpoint is loaded on the server.")
-        settings = runtime.settings
-        data, declared_type, scale_text = await _read_upload(request, settings)
-        if not data:
-            raise ApiError(400, INVALID_IMAGE, "The uploaded file is empty.")
-        if len(data) > settings.max_upload_bytes:
-            raise _too_large_upload(settings.max_upload_bytes)
-        scale = runtime.default_curve_scale if scale_text is None else parse_curve_scale(scale_text)
-        image_format = check_upload_type(declared_type, data)
-        async with runtime.limiter:
+        # Reserve capacity before reading the body: queued uploads must not accumulate in
+        # memory while a CPU/GPU job is running. Health and options remain available.
+        try:
+            runtime.limiter.acquire_nowait()
+        except anyio.WouldBlock:
+            raise ApiError(
+                503,
+                SERVER_BUSY,
+                "The enhancement server is busy. Please try again shortly.",
+                headers={"Retry-After": "1"},
+            ) from None
+        try:
+            settings = runtime.settings
+            data, declared_type, scale_text = await _read_upload(request, settings)
+            if not data:
+                raise ApiError(400, INVALID_IMAGE, "The uploaded file is empty.")
+            if len(data) > settings.max_upload_bytes:
+                raise _too_large_upload(settings.max_upload_bytes)
+            scale = (
+                runtime.default_curve_scale if scale_text is None else parse_curve_scale(scale_text)
+            )
+            image_format = check_upload_type(declared_type, data)
             png, width, height, elapsed_ms = await anyio.to_thread.run_sync(
                 _run_pipeline, runtime, data, image_format, scale
             )
+        finally:
+            runtime.limiter.release()
         return Response(
             content=png,
             media_type="image/png",

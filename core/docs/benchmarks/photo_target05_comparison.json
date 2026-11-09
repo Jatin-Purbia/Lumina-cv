@@ -1,0 +1,313 @@
+{
+  "reference_checkpoint_sha256": "efd25e47d0a53daa052f344d89a63e0b1e1338cc593ea7169909eb02fc445297",
+  "candidate_checkpoint_sha256": "4e34ffb3c817a65f8bd53956598a713ce0cdfb28187effe2ee37e80944e625d8",
+  "candidate_epoch": 9,
+  "candidate_exposure_target": 0.5,
+  "validation_split_sha256": "e5369eb16380aedd32d0437cb121f13c73e1ce4139e4a3a8260b90f06540edb7",
+  "preservation_samples": 48,
+  "paired_samples": 15,
+  "measurements": {
+    "reference": [
+      {
+        "dataset": "unpaired",
+        "metric": "clipping_fraction",
+        "mean": 0.010339409755128296,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "mean_brightness_input",
+        "mean": 0.49272081318000954,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "contrast_std_input",
+        "mean": 0.1802845161097745,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "mean_brightness",
+        "mean": 0.554198736945788,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "contrast_std",
+        "mean": 0.16123764729127288,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "noise_estimate",
+        "mean": 0.004445949671207927,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "noise_estimate_input",
+        "mean": 0.005144320966792293,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "psnr_to_input",
+        "mean": 23.102007110913593,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "ssim_to_input",
+        "mean": 0.935287402321895,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "angular_to_input",
+        "mean": 1.6689795156319935,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "psnr",
+        "mean": 10.682116667429606,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "ssim",
+        "mean": 0.5057363510131836,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "angular_error",
+        "mean": 7.766572984059652,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "clipping_fraction",
+        "mean": 4.722222426304749e-06,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "mean_brightness_input",
+        "mean": 0.059396311764915784,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "contrast_std_input",
+        "mean": 0.03996857752402624,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "mean_brightness",
+        "mean": 0.1829625278711319,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "contrast_std",
+        "mean": 0.04125997945666313,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "noise_estimate",
+        "mean": 0.007326850512375434,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "noise_estimate_input",
+        "mean": 0.004445119590188066,
+        "count": 15,
+        "excluded_count": 0
+      }
+    ],
+    "candidate": [
+      {
+        "dataset": "unpaired",
+        "metric": "clipping_fraction",
+        "mean": 0.011012326558879218,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "mean_brightness_input",
+        "mean": 0.49272081318000954,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "contrast_std_input",
+        "mean": 0.1802845161097745,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "mean_brightness",
+        "mean": 0.555459807937344,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "contrast_std",
+        "mean": 0.16998351132497191,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "noise_estimate",
+        "mean": 0.004294841734614844,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "noise_estimate_input",
+        "mean": 0.005144320966792293,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "psnr_to_input",
+        "mean": 23.211597204208374,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "ssim_to_input",
+        "mean": 0.9464031619330248,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "unpaired",
+        "metric": "angular_to_input",
+        "mean": 1.7353456914424896,
+        "count": 48,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "psnr",
+        "mean": 9.507257588704427,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "ssim",
+        "mean": 0.41538209319114683,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "angular_error",
+        "mean": 8.242426554361979,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "clipping_fraction",
+        "mean": 5.2777778061378435e-06,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "mean_brightness_input",
+        "mean": 0.059396311764915784,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "contrast_std_input",
+        "mean": 0.03996857752402624,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "mean_brightness",
+        "mean": 0.14329109887282054,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "contrast_std",
+        "mean": 0.032741033596297105,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "noise_estimate",
+        "mean": 0.0033156574858973424,
+        "count": 15,
+        "excluded_count": 0
+      },
+      {
+        "dataset": "paired",
+        "metric": "noise_estimate_input",
+        "mean": 0.004445119590188066,
+        "count": 15,
+        "excluded_count": 0
+      }
+    ]
+  },
+  "training": {
+    "epochs": 10,
+    "steps": 540,
+    "elapsed_seconds": 954.875,
+    "seed": 17,
+    "train_images": 437,
+    "val_images": 48
+  },
+  "promotion": {
+    "promoted": false,
+    "preservation_gate_passed": true,
+    "limits": {
+      "max_brightness_increase": 0.05,
+      "max_contrast_drop": 0.02,
+      "max_clipping_increase": 0.01
+    },
+    "reason": "Normal-input SSIM improved modestly, but mean brightening was unchanged, color error increased, low-light PSNR/SSIM declined and reviewed dark-scene detail was weaker. Retain shipped target0.6 weights."
+  }
+}

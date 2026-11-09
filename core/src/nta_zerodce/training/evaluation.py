@@ -10,10 +10,10 @@ Datasets (``dataset`` column):
 * ``paired``: ``paths.eval_low`` + ``paths.eval_high`` matched by basename (LOL style), full
   size, no alignment or tone fitting. Metrics: ``psnr``, ``ssim``, ``angular_error``,
   ``clipping_fraction`` (``input_clipping`` holds the input's value), ``noise_estimate`` and
-  ``noise_estimate_input``.
+  ``noise_estimate_input``, plus input/output mean brightness and intensity contrast.
 * ``unpaired`` or ``unpaired/<subdirectory>``: images under ``paths.unpaired`` (recursive).
   Metrics: ``clipping_fraction`` (with ``input_clipping``), ``noise_estimate``,
-  ``noise_estimate_input``.
+  ``noise_estimate_input``, plus input/output mean brightness and intensity contrast.
 * ``video``: only when ``flags.temporal``; held-out clips, see ``heldout_video_dir``. Metric
   ``temporal_error`` (flow-aligned L1 of the enhanced frames with the input-derived
   reliability mask) with ``mask_coverage`` and ``input_clipping`` of the current frame.
@@ -94,6 +94,7 @@ class AggregateRow:
     metric: str
     mean: float
     count: int
+    excluded_count: int = 0
 
 
 def heldout_video_dir(video_dir: str | Path) -> Path | None:
@@ -237,6 +238,15 @@ def _image_rows(
             input_clipping=_scalar(clipping_fraction(image)),
         )
     )
+    # Measure the input and result together: a paired benchmark alone can reward
+    # over-brightening, while ordinary-photo regression checks need exposure/contrast.
+    for suffix, tensor in (("_input", image), ("", output)):
+        intensity = luminance(tensor.detach())
+        for metric, value in (
+            ("mean_brightness", intensity.mean()),
+            ("contrast_std", intensity.std(correction=0)),
+        ):
+            rows.append(_row(run, seed, dataset, sample_id, metric + suffix, _scalar(value)))
     if min(image.shape[-2:]) >= 3:
         mask = flat_mask(image)
         coverage = float(mask.mean())
@@ -492,8 +502,9 @@ def aggregate(rows: list[Row]) -> list[AggregateRow]:
         rows: Evaluation rows.
 
     Returns:
-        One AggregateRow per pair; ``count`` is the number of rows, ``mean`` ignores NaN and
-        infinite samples (NaN when none are finite). This is a per-sample mean; the experiment
+        One AggregateRow per pair; ``count`` is the number of finite values used in ``mean``;
+        ``excluded_count`` reports NaN/infinite values (mean is NaN when none are finite).
+        This is a per-sample mean; the experiment
         protocol aggregates by scene and then by seed (docs/ARCHITECTURE.md).
     """
     groups: dict[tuple[str, str], list[float]] = {}
@@ -506,13 +517,16 @@ def aggregate(rows: list[Row]) -> list[AggregateRow]:
     for (dataset, metric), values in groups.items():
         finite = [v for v in values if math.isfinite(v)]
         mean = sum(finite) / len(finite) if finite else math.nan
-        out.append(AggregateRow(dataset, metric, mean, len(values)))
+        out.append(AggregateRow(dataset, metric, mean, len(finite), len(values) - len(finite)))
     return out
 
 
 def format_aggregate(rows: list[AggregateRow]) -> str:
     """Fixed-width table of the aggregates for printing."""
-    lines = [f"{'dataset':<24} {'metric':<22} {'mean':>12} {'n':>5}"]
+    lines = [f"{'dataset':<24} {'metric':<22} {'mean':>12} {'n':>5} {'excluded':>8}"]
     for item in rows:
-        lines.append(f"{item.dataset:<24} {item.metric:<22} {item.mean:>12.6f} {item.count:>5d}")
+        lines.append(
+            f"{item.dataset:<24} {item.metric:<22} {item.mean:>12.6f} "
+            f"{item.count:>5d} {item.excluded_count:>8d}"
+        )
     return "\n".join(lines)

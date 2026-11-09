@@ -89,14 +89,19 @@ describe("analyzePair and describe", () => {
     expect(a.baselines[0].metrics.mean).toBeGreaterThan(a.original.mean);
     expect(a.insights.length).toBeGreaterThanOrEqual(4);
     expect(a.insights.join(" ")).toMatch(/brighter/);
-    expect(a.insights.join(" ")).toMatch(/Noise and fine grain are \d+% lower/);
+    expect(a.insights.join(" ")).toMatch(/Fine pixel variation is \d+% lower/);
+    expect(a.insights.join(" ")).toContain("lost detail");
   });
 
   it("notes when shadows are lifted more than matched plain brightening", () => {
     const flat = solid(8, 8, [30, 30, 30]);
     const mask = darkMaskOf(flat);
-    const lines = describeChange(analyze(flat, mask), analyze(solid(8, 8, [90, 90, 90]), mask), analyze(solid(8, 8, [60, 60, 60]), mask));
-    expect(lines.join(" ")).toMatch(/shadows are lifted more than plain brightening/);
+    const original = analyze(flat, mask);
+    const enhanced = { ...analyze(solid(8, 8, [90, 90, 90]), mask), mean: 100 };
+    const matched = { ...analyze(solid(8, 8, [60, 60, 60]), mask), mean: 100 };
+    const lines = describeChange(original, enhanced, matched);
+    expect(lines.join(" ")).toContain("originally dark pixels are brighter");
+    expect(lines.join(" ")).not.toContain("bright areas are left alone");
   });
 
   it("warns when highlights clip and calls a tiny lift tiny", () => {
@@ -108,5 +113,38 @@ describe("analyzePair and describe", () => {
     const dim = solid(8, 8, [10, 10, 10]);
     const same = describeChange(analyze(dim, darkMaskOf(dim)), analyze(dim, darkMaskOf(dim)), analyze(dim, darkMaskOf(dim)));
     expect(same[0]).toMatch(/barely lifted/);
+  });
+
+  it("does not infer color fidelity from unchanged saturation", () => {
+    const result = analyzePair(solid(8, 8, [200, 0, 0]), solid(8, 8, [0, 200, 0]));
+    expect(result.insights.join(" ")).not.toMatch(/color is preserved/i);
+    expect(result.insights.join(" ")).toContain("does not establish whether hues were preserved");
+  });
+
+  it("labels unreachable gamma targets without claiming matched brightness", () => {
+    const result = analyzePair(solid(8, 8, [0, 0, 0]), solid(8, 8, [100, 100, 100]));
+    expect(result.brightnessMatched).toBe(false);
+    expect(result.baselines[0].label).toContain("closest available");
+    expect(result.baselines[0].note).toContain("target not reached");
+    expect(result.baselines[0].metrics.mean).toBe(0);
+    expect(result.insights.join(" ")).not.toContain("same overall brightness");
+  });
+
+  it("does not invent a shadow sample or rule out individual channel clipping", () => {
+    const result = analyzePair(solid(8, 8, [200, 0, 0]), solid(8, 8, [255, 0, 0]));
+    expect(result.original.darkCount).toBe(0);
+    expect(result.insights[0]).toContain("shadow lift cannot be measured");
+    expect(result.insights.join(" ")).toContain("does not detect clipping of individual color channels");
+    expect(result.insights.join(" ")).not.toContain("No meaningful highlight clipping");
+  });
+
+  it("describes darker shadows and a zero-to-positive lift without a misleading ratio", () => {
+    const darker = analyzePair(solid(8, 8, [20, 20, 20]), solid(8, 8, [5, 5, 5]));
+    expect(darker.insights[0]).toContain("became darker");
+    const lifted = analyzePair(solid(8, 8, [0, 0, 0]), solid(8, 8, [100, 100, 100]));
+    expect(lifted.insights[0]).toContain("brightened from 0 to 100");
+    expect(lifted.insights[0]).not.toContain("x brighter");
+    const unchangedBlack = analyzePair(solid(8, 8, [0, 0, 0]), solid(8, 8, [0, 0, 0]));
+    expect(unchangedBlack.insights[0]).not.toContain("became darker");
   });
 });

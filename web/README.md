@@ -17,9 +17,17 @@ network requests; the browser only calls same-origin `/api/v1/...` URLs.
   Shift+arrows, PageUp/PageDown, Home, End), with the server-reported elapsed time
   (`X-Lumina-Elapsed-Ms`), output size (`X-Lumina-Size`) and a PNG download.
 - API error codes (`invalid_image`, `too_large`, `unsupported_type`, `bad_option`,
-  `model_not_loaded`) and network failures each get their own message.
+  `model_not_loaded`, `server_busy`) and network failures each get their own message.
+  Busy responses explain that the request can be retried; the proxy preserves `Retry-After`.
 - A status badge in the header reads `GET /api/v1/health` every 15 s and when the
   window regains focus: model loaded, server up but no model, or unreachable.
+  Each successful check also refreshes options, so a server restart does not leave stale limits.
+- An Analysis panel reports brightness, shadow lift, fine pixel variation, saturation,
+  histogram entropy and near-white pixels at reduced resolution. These are descriptive
+  measurements: variation includes texture and edges, saturation does not establish hue
+  accuracy, and near-white counts do not detect individual color-channel clipping.
+  Gamma comparisons claim matched brightness only when the achieved mean is within one
+  brightness unit (0–255) of the enhanced image; otherwise the difference is displayed.
 - Light and dark themes follow `prefers-color-scheme`.
 
 ## Run with the real API
@@ -84,5 +92,4 @@ The Python package lives in [core](../core/README.md).
 
 - Only one image at a time; no batch mode, history or persistence.
 - Enhancement runs on the server; the page makes no claim about quality or speed.
-- `next.config.ts` uses Next 16 experimental options (`proxyClientMaxBodySize`,
-  `proxyTimeout`) that may be renamed in later Next releases.
+- Browser analysis is performed at reduced size and is not a reference-based quality score.

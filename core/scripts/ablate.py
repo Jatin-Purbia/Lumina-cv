@@ -38,7 +38,7 @@ from nta_zerodce.training.trainer import train
 
 DEFAULT_MATRIX = "configs/ablation_matrix.py"
 DEFAULT_OUTPUT = "runs/ablations"
-SUMMARY_COLUMNS = ("run", "seed", "status", "dataset", "metric", "mean", "count")
+SUMMARY_COLUMNS = ("run", "seed", "status", "dataset", "metric", "mean", "count", "excluded_count")
 _FORBIDDEN = ("noise", "denoise", "edge", "chroma", "adaptive_exp", "temporal", "light", "seed")
 
 __all__ = ["RunSpec", "build_parser", "expand_matrix", "main", "run"]
@@ -201,6 +201,7 @@ def run(args: argparse.Namespace) -> None:
                         "metric": item.metric,
                         "mean": item.mean,
                         "count": item.count,
+                        "excluded_count": item.excluded_count,
                     }
                 )
         else:
@@ -214,6 +215,7 @@ def run(args: argparse.Namespace) -> None:
                     "metric": "",
                     "mean": "",
                     "count": "",
+                    "excluded_count": "",
                 }
             )
     output.mkdir(parents=True, exist_ok=True)
