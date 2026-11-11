@@ -1,8 +1,8 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass{article}
 
-\usepackage[margin=2.3cm]{geometry}
+\usepackage[preprint,nonatbib]{neurips_2026}
+
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -12,8 +12,6 @@
 \usepackage{xcolor}
 \usepackage[section]{placeins}
 \usepackage{float}
-\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{5}
-\renewcommand{\topfraction}{.9}\renewcommand{\bottomfraction}{.8}\renewcommand{\textfraction}{.1}\renewcommand{\floatpagefraction}{.7}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{tikz}
@@ -21,52 +19,34 @@
 \usepackage{enumitem}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black}
+
 \graphicspath{{figures/}}
-\setlength{\parskip}{4pt}
-\setlength{\parindent}{0pt}
 \setlength{\emergencystretch}{2em}
 \captionsetup{font=small,labelfont=bf}
 
 \newcommand{\code}[1]{\texttt{#1}}
 
-\begin{document}
-% The title, authors and complete abstract share the first page.
-\begin{center}
-\vspace*{2mm}
-{\small PROJECT REPORT\par}
-\vspace{4mm}
-{\huge\bfseries Lumina CV\par}
-\vspace{3mm}
-{\Large Noise- and Temporal-Aware\\[3pt]
-Zero-Reference Low-Light Image Enhancement\par}
-\vspace{5mm}
-\begingroup
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}l@{\hspace{10mm}}l@{}}
-Jatin Purbia & B23CH11022\\
-Sharana Gouda Lakshetty & B23CH1042\\
-Rahul Ahuja & B23CH1037
-\end{tabular}
-\endgroup
-\par\vspace{3mm}
-November 2026
-\end{center}
-\vspace{2mm}
+\title{Lumina CV: Noise- and Temporal-Aware Zero-Reference Low-Light Image Enhancement}
 
-\begingroup
-\linespread{1.04}\selectfont
-\setlength{\parskip}{6pt}
-\section*{Abstract}
+\author{%
+  Jatin Purbia \\ B23CH11022 \\
+  \And
+  Sharana Gouda Lakshetty \\ B23CH1042 \\
+  \And
+  Rahul Ahuja \\ B23CH1037
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
 We built Lumina CV, an end-to-end system for brightening photographs taken in poor light. It has three parts: a PyTorch model (``NTA-ZeroDCE''), a FastAPI inference server and a Next.js web application that shows a before/after comparison with an in-browser quality analysis. The model extends Zero-Reference Deep Curve Estimation (Zero-DCE) with a noise-estimation branch, a residual denoiser, and extra losses for edges, chromaticity and adaptive exposure. It also has an optional video-consistency path that uses optical flow. It is trained without any paired ground truth.
 
 This report describes the method and the software, and it analyses the training settings we tried while looking for the best model. We evaluated all eight saved training checkpoints (epochs 5 to 40) and four inference settings on the 15 held-out LOL image pairs. We also compared the model against plain gamma correction and histogram equalisation. The main finding is a trade-off. Held-out PSNR rises from 10.7~dB (epoch 10) to 16.6~dB (epoch 40), but the model drifts towards brightening everything too much, so ordinary photographs wash out. We therefore ship the 10-epoch model (exposure target 0.6). Gamma correction with $\gamma=0.3$ reaches 16.7~dB PSNR, higher than any checkpoint, so the model's advantage is in colour fidelity and noise behaviour rather than pixel-wise PSNR.
 
 We followed up with two concrete changes. First, we built a reusable held-out-photo validation pipeline (a 48-scene normal-light preservation set carved out of the fixed training split, plus a per-image regression gate on brightness, contrast and clipping) so that a brightening regression can be \emph{measured} before a checkpoint ships, not only noticed by eye. Second, we used it to test the obvious mitigation: retraining for 10 epochs with the exposure target lowered from 0.6 to 0.5. The candidate passed the preservation gate and improved normal-photo structural similarity slightly, but it also \emph{lowered} held-out low-light PSNR (10.68$\to$9.51~dB) and SSIM (0.506$\to$0.415) and visibly lost shadow detail, so we did not promote it; the shipped model keeps the original 0.6 target. We also found and fixed a real reliability bug: the deployed Starlette version silently broke the API's multipart upload parser, so every enhancement request failed; pinning a newer Starlette fixed it, and the regression test suite (now 2{,}080 passing, 2 skipped) covers it. The 13-row ablation matrix remains implemented but not run, so we still make no ablation claims.
-\endgroup
-
-\clearpage
-\tableofcontents
-\clearpage
+\end{abstract}
 
 %--------------------------------------------------------------------
 \section{Introduction}
@@ -199,7 +179,7 @@ For video, an OpenCV DIS optical-flow estimator is run in both directions; a pix
 
 \begin{table}[!htbp]
 \centering\small
-\begin{tabular}{p{3.3cm}p{3.2cm}p{3.0cm}p{4.2cm}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{.22\linewidth}>{\raggedright\arraybackslash}p{.21\linewidth}>{\raggedright\arraybackslash}p{.19\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
 Run & Training data & Extensions on & Epochs\\
 \midrule
@@ -208,7 +188,7 @@ Run & Training data & Extensions on & Epochs\\
 \code{full} (checkpoint later removed) & 96 synthetic procedural pairs & all, including temporal & 40\\
 \code{photo\_target05\_20261109} & 485 LOL low-light photos (same split) & same as \code{lol\_dark\_only} & 10, exposure target 0.5 (Sec.~\ref{sec:target05})\\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \caption{The training runs referenced in this report. \code{full}'s checkpoint flattened real photos to grey and was removed from the repository after this report's figures were produced from its logs (\code{checkpoints/README.md}); only the logged curves in Figs.~\ref{fig:train}--\ref{fig:comp} remain as a historical record, and that run is not reproducible from the current repository state.}
 \label{tab:runs}
 \end{table}
